@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Magic Card Matcher</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;600;700&family=Syne:wght@700;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <header>
+    <a class="logo" href="index.html">🎴 Magic <span>Card Matcher</span></a>
+    <div class="auth-bar">
+      <div class="auth-pill" id="authPill">
+        <span class="dot"></span>
+        <span id="authPillText">Sin sesión</span>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="logoutBtn" style="display:none">Salir</button>
+    </div>
+  </header>
+
+  <div class="modal-backdrop open" id="loginModal">
+    <div class="modal auth-modal" data-state="login">
+
+      <div class="auth-view-login modal-title">🔐 Iniciar Sesión</div>
+      <div class="auth-view-register modal-title">📝 Crear Cuenta</div>
+      <div class="auth-view-forgot modal-title">💡 Recuperar Acceso</div>
+
+      <div id="authFeedback" class="auth-feedback"></div>
+
+      <form id="authForm" onsubmit="return false;" novalidate>
+        <div class="field">
+          <label for="authEmail">Correo Electrónico</label>
+          <input type="email" class="inp" id="authEmail" placeholder="ejemplo@dominio.com" autocomplete="email">
+        </div>
+
+        <div class="field auth-view-register">
+          <label for="authUsername">Nombre de Jugador (Alias)</label>
+          <input type="text" class="inp" id="authUsername" placeholder="Tu alias de juego" autocomplete="username">
+        </div>
+
+        <div class="field auth-hide-forgot">
+          <label for="authPassword">Contraseña</label>
+          <input type="password" class="inp" id="authPassword" placeholder="••••••••" autocomplete="current-password">
+        </div>
+
+        <div class="auth-navigation-links">
+          <a href="#" id="linkToRegister" class="auth-view-login">¿No tienes cuenta? Regístrate aquí</a>
+          <a href="#" id="linkToForgot" class="auth-view-login">¿Has olvidado tu contraseña?</a>
+          <a href="#" id="linkToLogin" class="auth-view-register auth-view-forgot">¿Ya tienes cuenta? Inicia sesión</a>
+        </div>
+
+        <div class="modal-actions">
+          <button type="submit" class="btn btn-gold auth-view-login" id="btnActionLogin">Entrar al Sistema</button>
+          <button type="submit" class="btn btn-primary auth-view-register" id="btnActionRegister">Registrarse e
+            Ingresar</button>
+          <button type="submit" class="btn btn-emerald auth-view-forgot" id="btnActionForgot">Enviar Enlace</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <main class="container" id="mainApp" style="display: none;">
+    <div class="tabs-nav">
+      <button class="tab-btn active" id="tabHomeBtn">🏠 Inicio</button>
+      <button class="tab-btn" id="tabCollectionBtn">📋 Mi Colección</button>
+      <button class="tab-btn" id="tabWishlistBtn">⭐ Mi Wishlist</button>
+      <button class="tab-btn" id="tabAdminBtn" style="display:none">⚙️ Admin</button>
+    </div>
+
+    <div class="panel active" id="panelHome">
+      <h2>Intersecciones de Cartas</h2>
+      <p class="text-muted mb-4">Descubre qué jugadores de tu grupo poseen las cartas que estás buscando.</p>
+      <div class="actions-row">
+        <button class="btn btn-primary" id="refreshMatchesBtn">🔄 Buscar Coincidencias</button>
+      </div>
+      <div id="matchesContainer" class="grid-matches">
+        <p class="text-muted">Presiona el botón para buscar cruces en tiempo real entre las colecciones del grupo.</p>
+      </div>
+    </div>
+
+    <div class="panel" id="panelCollection">
+      <h2>Mi Colección Nube</h2>
+      <p class="text-muted mb-4">Administra el inventario de cartas físicas que tienes disponibles para intercambio.</p>
+
+      <div class="import-tabs">
+        <div class="import-tab active">Pegar Texto / Lista de Cartas</div>
+      </div>
+
+      <div class="import-panel active">
+        <textarea class="inp font-mono" id="collectionInput" rows="12"
+          placeholder="Ejemplo:&#10;4 Lightning Bolt&#10;1 Black Lotus&#10;2 Counterspell"></textarea>
+        <div class="mt-2 flex justify-between items-center">
+          <button class="btn btn-gold" id="saveCollectionBtn">💾 Guardar Colección</button>
+          <span id="colFileStatus" class="text-xs text-muted"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="panelWishlist">
+      <h2>Mi Wishlist Nube</h2>
+      <p class="text-muted mb-4">Añade las cartas que necesitas desesperadamente para tus mazos.</p>
+
+      <div class="import-tabs">
+        <div class="import-tab active">Pegar Texto / Lista de Deseos</div>
+      </div>
+
+      <div class="import-panel active">
+        <textarea class="inp font-mono" id="wishlistInput" rows="12"
+          placeholder="Ejemplo:&#10;4 Ragavan, Nimble Pilferer&#10;2 Force of Will"></textarea>
+        <div class="mt-2 flex justify-between items-center">
+          <button class="btn btn-gold" id="saveWishlistBtn">💾 Guardar Wishlist</button>
+          <span id="wlFileStatus" class="text-xs text-muted"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="panelAdmin">
+      <h2>Panel de Administrador</h2>
+      <p class="text-muted mb-4">Gestión interna de permisos del grupo.</p>
+      <div class="auth-feedback success"
+        style="display:block; background:#e3f2fd; color:#0d47a1; border-color:#90caf9;">
+        💡 Eres administrador del grupo. Para otorgar permisos de administrador a otro jugador, añade la propiedad
+        <code>"isAdmin": true</code> en su documento correspondiente dentro de la colección <code>players</code> en la
+        consola de Firebase Firestore.
+      </div>
+    </div>
+  </main>
+
+  <div id="toast"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="config.js"></script>
+  <script src="script.js"></script>
+</body>
+
+</html>

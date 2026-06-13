@@ -1,137 +1,227 @@
 <!DOCTYPE html>
 <html lang="es" class="scroll-smooth">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Magic Card Matcher</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link
-    href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;600;700&family=Syne:wght@700;800&display=swap"
-    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
-  <header>
-    <a class="logo" href="index.html">🎴 Magic <span>Card Matcher</span></a>
-    <div class="auth-bar">
-      <div class="auth-pill" id="authPill">
-        <span class="dot"></span>
-        <span id="authPillText">Sin sesión</span>
-      </div>
-      <button class="btn btn-ghost btn-sm" id="logoutBtn" style="display:none">Salir</button>
+  <!-- ═══════════════════════════════════════════════════════
+       LOGIN SCREEN — shown when no session, hides the app
+  ════════════════════════════════════════════════════════ -->
+  <div id="loginScreen">
+    <!-- Animated Bauhaus geometry -->
+    <div class="geo-bg">
+      <div class="geo geo-1"></div>
+      <div class="geo geo-2"></div>
+      <div class="geo geo-3"></div>
+      <div class="geo geo-4"></div>
+      <div class="geo geo-5"></div>
+      <div class="geo geo-6"></div>
+      <div class="geo geo-7"></div>
+      <div class="geo geo-8"></div>
+      <div class="geo geo-9"></div>
     </div>
-  </header>
 
-  <div class="modal-backdrop open" id="loginModal">
-    <div class="modal auth-modal" data-state="login">
+    <!-- Auth card -->
+    <div class="login-card">
+      <div class="auth-modal" id="authModalContainer" data-state="login">
 
-      <div class="auth-view-login modal-title">🔐 Iniciar Sesión</div>
-      <div class="auth-view-register modal-title">📝 Crear Cuenta</div>
-      <div class="auth-view-forgot modal-title">💡 Recuperar Acceso</div>
+        <!-- Titles (one per state) -->
+        <div class="auth-view-login modal-title">🔐 Iniciar Sesión</div>
+        <div class="auth-view-register modal-title">📝 Crear Cuenta</div>
+        <div class="auth-view-forgot modal-title">💡 Recuperar Acceso</div>
 
-      <div id="authFeedback" class="auth-feedback"></div>
+        <!-- Back buttons for sub-screens -->
+        <button class="auth-back-btn auth-view-register" id="backFromRegister">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M8 1L3 6L8 11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Volver al inicio de sesión
+        </button>
+        <button class="auth-back-btn auth-view-forgot" id="backFromForgot">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M8 1L3 6L8 11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Volver al inicio de sesión
+        </button>
 
-      <form id="authForm" onsubmit="return false;" novalidate>
-        <div class="field">
-          <label for="authEmail">Correo Electrónico</label>
-          <input type="email" class="inp" id="authEmail" placeholder="ejemplo@dominio.com" autocomplete="email">
-        </div>
+        <div id="authFeedback" class="auth-feedback"></div>
 
-        <div class="field auth-view-register">
-          <label for="authUsername">Nombre de Jugador (Alias)</label>
-          <input type="text" class="inp" id="authUsername" placeholder="Tu alias de juego" autocomplete="username">
-        </div>
+        <form id="authForm" novalidate>
+          <div class="field">
+            <label for="authEmail">Correo Electrónico</label>
+            <input type="email" class="inp" id="authEmail" placeholder="ejemplo@dominio.com" autocomplete="email">
+          </div>
 
-        <div class="field auth-hide-forgot">
-          <label for="authPassword">Contraseña</label>
-          <input type="password" class="inp" id="authPassword" placeholder="••••••••" autocomplete="current-password">
-        </div>
+          <div class="field auth-view-register">
+            <label for="authUsername">Nombre de Jugador (Alias)</label>
+            <input type="text" class="inp" id="authUsername" placeholder="Tu alias de juego" autocomplete="username">
+          </div>
 
-        <div class="auth-navigation-links">
-          <a href="#" id="linkToRegister" class="auth-view-login">¿No tienes cuenta? Regístrate aquí</a>
-          <a href="#" id="linkToForgot" class="auth-view-login">¿Has olvidado tu contraseña?</a>
-          <a href="#" id="linkToLogin" class="auth-view-register auth-view-forgot">¿Ya tienes cuenta? Inicia sesión</a>
-        </div>
+          <div class="field auth-hide-forgot">
+            <label for="authPassword">Contraseña</label>
+            <input type="password" class="inp" id="authPassword" placeholder="••••••••" autocomplete="current-password">
+          </div>
 
-        <div class="modal-actions">
-          <button type="submit" class="btn btn-gold auth-view-login" id="btnActionLogin">Entrar al Sistema</button>
-          <button type="submit" class="btn btn-primary auth-view-register" id="btnActionRegister">Registrarse e
-            Ingresar</button>
-          <button type="submit" class="btn btn-emerald auth-view-forgot" id="btnActionForgot">Enviar Enlace</button>
-        </div>
-      </form>
+          <!-- Nav links (only on login state) -->
+          <div class="auth-navigation-links auth-view-login">
+            <a href="#" id="linkToRegister">¿No tienes cuenta? Regístrate aquí</a>
+            <a href="#" id="linkToForgot">¿Has olvidado tu contraseña?</a>
+          </div>
+
+          <div class="modal-actions">
+            <button type="submit" class="btn btn-gold    auth-view-login"    id="btnActionLogin">Entrar al Sistema</button>
+            <button type="submit" class="btn btn-primary auth-view-register" id="btnActionRegister">Registrarse e Ingresar</button>
+            <button type="submit" class="btn btn-emerald auth-view-forgot"   id="btnActionForgot">Enviar Enlace</button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 
-  <main class="container" id="mainApp" style="display: none;">
-    <div class="tabs-nav">
-      <button class="tab-btn active" id="tabHomeBtn">🏠 Inicio</button>
-      <button class="tab-btn" id="tabCollectionBtn">📋 Mi Colección</button>
-      <button class="tab-btn" id="tabWishlistBtn">⭐ Mi Wishlist</button>
-      <button class="tab-btn" id="tabAdminBtn" style="display:none">⚙️ Admin</button>
-    </div>
+  <!-- ═══════════════════════════════════════════════════════
+       MAIN APP — hidden until user is authenticated
+  ════════════════════════════════════════════════════════ -->
+  <div id="mainApp" style="display:none;">
+    <header>
+      <a class="logo" href="#">🎴 Magic <span>Card Matcher</span></a>
+      <div class="auth-bar">
+        <div class="auth-pill" id="authPill">
+          <span class="dot"></span>
+          <span id="authPillText">Sin sesión</span>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="logoutBtn" style="display:none">Salir</button>
+      </div>
+    </header>
 
-    <div class="panel active" id="panelHome">
-      <h2>Intersecciones de Cartas</h2>
-      <p class="text-muted mb-4">Descubre qué jugadores de tu grupo poseen las cartas que estás buscando.</p>
-      <div class="actions-row">
+    <main class="container">
+      <div class="tabs-nav">
+        <button class="tab-btn active" id="tabHomeBtn">🏠 Inicio</button>
+        <button class="tab-btn" id="tabCollectionBtn">📋 Mi Colección</button>
+        <button class="tab-btn" id="tabWishlistBtn">⭐ Mi Wishlist</button>
+        <button class="tab-btn" id="tabAdminBtn" style="display:none">⚙️ Admin</button>
+      </div>
+
+      <!-- HOME: Matches -->
+      <div class="panel active" id="panelHome">
+        <h2>Intersecciones de Cartas</h2>
+        <p class="text-muted mb-4">Descubre qué jugadores del grupo tienen cartas que estás buscando.</p>
         <button class="btn btn-primary" id="refreshMatchesBtn">🔄 Buscar Coincidencias</button>
-      </div>
-      <div id="matchesContainer" class="grid-matches">
-        <p class="text-muted">Presiona el botón para buscar cruces en tiempo real entre las colecciones del grupo.</p>
-      </div>
-    </div>
-
-    <div class="panel" id="panelCollection">
-      <h2>Mi Colección Nube</h2>
-      <p class="text-muted mb-4">Administra el inventario de cartas físicas que tienes disponibles para intercambio.</p>
-
-      <div class="import-tabs">
-        <div class="import-tab active">Pegar Texto / Lista de Cartas</div>
+        <div id="matchesContainer" class="grid-matches">
+          <p class="text-muted">Pulsa el botón para buscar cruces en tiempo real.</p>
+        </div>
       </div>
 
-      <div class="import-panel active">
-        <textarea class="inp font-mono" id="collectionInput" rows="12"
-          placeholder="Ejemplo:&#10;4 Lightning Bolt&#10;1 Black Lotus&#10;2 Counterspell"></textarea>
-        <div class="mt-2 flex justify-between items-center">
+      <!-- COLLECTION -->
+      <div class="panel" id="panelCollection">
+        <h2>Mi Colección</h2>
+        <p class="text-muted mb-4">Cartas que tienes disponibles para intercambio.</p>
+
+        <div class="imp-mode-tabs">
+          <button class="imp-tab active" data-target="col-text">✏️ Pegar texto</button>
+          <button class="imp-tab"        data-target="col-csv">📄 CSV</button>
+          <button class="imp-tab"        data-target="col-url">🔗 URL (Moxfield / Archidekt)</button>
+        </div>
+
+        <!-- Text paste -->
+        <div class="imp-panel active" id="col-text">
+          <textarea class="inp font-mono" id="collectionInput" rows="12"
+            placeholder="Ejemplo:&#10;4 Lightning Bolt&#10;1 Black Lotus&#10;2 Counterspell"></textarea>
+        </div>
+
+        <!-- CSV import -->
+        <div class="imp-panel" id="col-csv">
+          <div class="drop-zone" id="colDropZone">
+            <p>Arrastra tu CSV aquí o haz clic para seleccionar</p>
+            <small>Columna "name" o "Card Name" — también acepta exports de MTGO y Moxfield CSV</small>
+          </div>
+          <input type="file" id="colFileInput" accept=".csv,.txt" style="display:none">
+          <p class="imp-status" id="colCsvStatus"></p>
+        </div>
+
+        <!-- URL import -->
+        <div class="imp-panel" id="col-url">
+          <div class="url-row">
+            <div class="field" style="flex:1;margin-bottom:0;">
+              <label for="colUrlInput">URL de tu lista</label>
+              <input type="url" class="inp" id="colUrlInput" placeholder="https://www.moxfield.com/decks/...">
+            </div>
+            <button class="btn btn-blue" id="colFetchUrlBtn">Importar</button>
+          </div>
+          <div class="url-badges">
+            <span class="url-badge">Moxfield</span>
+            <span class="url-badge">Archidekt</span>
+          </div>
+          <p class="imp-status" id="colUrlStatus"></p>
+        </div>
+
+        <div class="mt-2 flex justify-between items-center" style="margin-top:1rem;">
           <button class="btn btn-gold" id="saveCollectionBtn">💾 Guardar Colección</button>
-          <span id="colFileStatus" class="text-xs text-muted"></span>
+          <span class="text-xs text-muted" id="colCardCount"></span>
         </div>
       </div>
-    </div>
 
-    <div class="panel" id="panelWishlist">
-      <h2>Mi Wishlist Nube</h2>
-      <p class="text-muted mb-4">Añade las cartas que necesitas desesperadamente para tus mazos.</p>
+      <!-- WISHLIST -->
+      <div class="panel" id="panelWishlist">
+        <h2>Mi Wishlist</h2>
+        <p class="text-muted mb-4">Cartas que necesitas para tus mazos.</p>
 
-      <div class="import-tabs">
-        <div class="import-tab active">Pegar Texto / Lista de Deseos</div>
-      </div>
+        <div class="imp-mode-tabs">
+          <button class="imp-tab active" data-target="wl-text">✏️ Pegar texto</button>
+          <button class="imp-tab"        data-target="wl-csv">📄 CSV</button>
+          <button class="imp-tab"        data-target="wl-url">🔗 URL (Moxfield / Archidekt)</button>
+        </div>
 
-      <div class="import-panel active">
-        <textarea class="inp font-mono" id="wishlistInput" rows="12"
-          placeholder="Ejemplo:&#10;4 Ragavan, Nimble Pilferer&#10;2 Force of Will"></textarea>
-        <div class="mt-2 flex justify-between items-center">
+        <div class="imp-panel active" id="wl-text">
+          <textarea class="inp font-mono" id="wishlistInput" rows="12"
+            placeholder="Ejemplo:&#10;4 Ragavan, Nimble Pilferer&#10;2 Force of Will"></textarea>
+        </div>
+
+        <div class="imp-panel" id="wl-csv">
+          <div class="drop-zone" id="wlDropZone">
+            <p>Arrastra tu CSV aquí o haz clic para seleccionar</p>
+            <small>Columna "name" o "Card Name" — también acepta exports de MTGO y Moxfield CSV</small>
+          </div>
+          <input type="file" id="wlFileInput" accept=".csv,.txt" style="display:none">
+          <p class="imp-status" id="wlCsvStatus"></p>
+        </div>
+
+        <div class="imp-panel" id="wl-url">
+          <div class="url-row">
+            <div class="field" style="flex:1;margin-bottom:0;">
+              <label for="wlUrlInput">URL de tu lista</label>
+              <input type="url" class="inp" id="wlUrlInput" placeholder="https://www.moxfield.com/decks/...">
+            </div>
+            <button class="btn btn-blue" id="wlFetchUrlBtn">Importar</button>
+          </div>
+          <div class="url-badges">
+            <span class="url-badge">Moxfield</span>
+            <span class="url-badge">Archidekt</span>
+          </div>
+          <p class="imp-status" id="wlUrlStatus"></p>
+        </div>
+
+        <div class="mt-2 flex justify-between items-center" style="margin-top:1rem;">
           <button class="btn btn-gold" id="saveWishlistBtn">💾 Guardar Wishlist</button>
-          <span id="wlFileStatus" class="text-xs text-muted"></span>
+          <span class="text-xs text-muted" id="wlCardCount"></span>
         </div>
       </div>
-    </div>
 
-    <div class="panel" id="panelAdmin">
-      <h2>Panel de Administrador</h2>
-      <p class="text-muted mb-4">Gestión interna de permisos del grupo.</p>
-      <div class="auth-feedback success"
-        style="display:block; background:#e3f2fd; color:#0d47a1; border-color:#90caf9;">
-        💡 Eres administrador del grupo. Para otorgar permisos de administrador a otro jugador, añade la propiedad
-        <code>"isAdmin": true</code> en su documento correspondiente dentro de la colección <code>players</code> en la
-        consola de Firebase Firestore.
+      <!-- ADMIN -->
+      <div class="panel" id="panelAdmin">
+        <h2>Admin del Grupo</h2>
+        <p class="text-muted mb-4">Gestión de jugadores y permisos.</p>
+
+        <div class="admin-section">
+          <h3>Jugadores registrados</h3>
+          <div class="player-list" id="adminPlayerList">
+            <p class="text-muted">Cargando jugadores…</p>
+          </div>
+        </div>
       </div>
-    </div>
-  </main>
+    </main>
+  </div>
 
   <div id="toast"></div>
 
@@ -141,5 +231,4 @@
   <script src="config.js"></script>
   <script src="script.js"></script>
 </body>
-
 </html>

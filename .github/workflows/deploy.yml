@@ -1,0 +1,34 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generar config.js desde secrets
+        run: |
+          cat > config.js << 'EOF'
+          const FIREBASE_CONFIG = {
+            apiKey:            "${{ secrets.FIREBASE_API_KEY }}",
+            authDomain:        "${{ secrets.FIREBASE_AUTH_DOMAIN }}",
+            databaseURL:       "${{ secrets.FIREBASE_DATABASE_URL }}",
+            projectId:         "${{ secrets.FIREBASE_PROJECT_ID }}",
+            storageBucket:     "${{ secrets.FIREBASE_STORAGE_BUCKET }}",
+            messagingSenderId: "${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}",
+            appId:             "${{ secrets.FIREBASE_APP_ID }}"
+          };
+          EOF
+
+      - name: Deploy a GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./

@@ -1,8 +1,3 @@
-// ═══════════════════════════════════════════════════════════
-// config.js — NUNCA subas este archivo a GitHub
-// Añádelo a .gitignore
-// ═══════════════════════════════════════════════════════════
-
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyDMSVL3E_YnyTL3YVgHpU9Hk5XGYwEU3Zw",
   authDomain: "magiccolection-f6ef4.firebaseapp.com",

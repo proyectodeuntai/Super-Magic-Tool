@@ -18,12 +18,12 @@ if (typeof FIREBASE_CONFIG === 'undefined') {
 }
 
 firebase.initializeApp(FIREBASE_CONFIG);
-const db   = firebase.firestore();
+const db = firebase.firestore();
 const auth = firebase.auth();
 
-let currentPlayer  = null;
+let currentPlayer = null;
 let collectionCloud = [];
-let wishlistCloud   = [];
+let wishlistCloud = [];
 
 const authModal = $('authModalContainer');
 
@@ -58,9 +58,9 @@ function setAuthState(state) {
 
 // ── AUTH NAVIGATION LINKS ──────────────────────────────────
 $('linkToRegister').addEventListener('click', e => { e.preventDefault(); setAuthState('register'); });
-$('linkToForgot'  ).addEventListener('click', e => { e.preventDefault(); setAuthState('forgot');   });
+$('linkToForgot').addEventListener('click', e => { e.preventDefault(); setAuthState('forgot'); });
 $('backFromRegister').addEventListener('click', () => setAuthState('login'));
-$('backFromForgot'  ).addEventListener('click', () => setAuthState('login'));
+$('backFromForgot').addEventListener('click', () => setAuthState('login'));
 
 // ── APP TABS ───────────────────────────────────────────────
 const TABS = ['Home', 'Collection', 'Wishlist', 'Admin'];
@@ -84,12 +84,12 @@ auth.onAuthStateChanged(async user => {
     try {
       const doc = await db.collection('players').doc(user.uid).get();
       let username = user.email.split('@')[0];
-      let isAdmin  = false;
+      let isAdmin = false;
 
       if (doc.exists) {
         const d = doc.data();
         username = d.name || username;
-        isAdmin  = !!d.isAdmin;
+        isAdmin = !!d.isAdmin;
       } else {
         await db.collection('players').doc(user.uid).set({
           name: username,
@@ -145,9 +145,9 @@ auth.onAuthStateChanged(async user => {
 
     // Clear inputs
     $('collectionInput').value = '';
-    $('wishlistInput').value   = '';
+    $('wishlistInput').value = '';
     collectionCloud = [];
-    wishlistCloud   = [];
+    wishlistCloud = [];
 
     // Show login screen, hide app
     $('mainApp').style.display = 'none';
@@ -161,8 +161,8 @@ $('authForm').addEventListener('submit', async e => {
   e.preventDefault();
   clearAuthFeedback();
 
-  const state    = authModal.getAttribute('data-state');
-  const email    = $('authEmail').value.trim();
+  const state = authModal.getAttribute('data-state');
+  const email = $('authEmail').value.trim();
   const password = $('authPassword').value;
   const username = $('authUsername').value.trim();
 
@@ -178,7 +178,7 @@ $('authForm').addEventListener('submit', async e => {
       if (!password || password.length < 6) return showAuthFeedback('La contraseña debe tener mínimo 6 caracteres.');
 
       const nameLower = username.toLowerCase();
-      const existing  = await db.collection('players').where('nameLower', '==', nameLower).limit(1).get();
+      const existing = await db.collection('players').where('nameLower', '==', nameLower).limit(1).get();
       if (!existing.empty) return showAuthFeedback('Ese nombre de jugador ya está en uso.');
 
       const cred = await auth.createUserWithEmailAndPassword(email, password);
@@ -204,12 +204,12 @@ $('authForm').addEventListener('submit', async e => {
       return;
     }
     const msgs = {
-      'auth/user-not-found':    'Las credenciales introducidas no son correctas.',
-      'auth/wrong-password':    'Las credenciales introducidas no son correctas.',
-      'auth/invalid-credential':'Las credenciales introducidas no son correctas.',
+      'auth/user-not-found': 'Las credenciales introducidas no son correctas.',
+      'auth/wrong-password': 'Las credenciales introducidas no son correctas.',
+      'auth/invalid-credential': 'Las credenciales introducidas no son correctas.',
       'auth/email-already-in-use': 'Este correo electrónico ya está registrado.',
-      'auth/invalid-email':     'Formato de correo inválido (ejemplo@dominio.com).',
-      'auth/weak-password':     'La contraseña es demasiado débil (mínimo 6 caracteres).',
+      'auth/invalid-email': 'Formato de correo inválido (ejemplo@dominio.com).',
+      'auth/weak-password': 'La contraseña es demasiado débil (mínimo 6 caracteres).',
     };
     showAuthFeedback(msgs[err.code] || `Error: ${err.message}`);
   }
@@ -254,7 +254,7 @@ async function saveList(collection, inputId, cloudVar, label) {
       cards
     });
     if (collection === 'collections') { collectionCloud = cards; updateCardCount('col', cards.length); }
-    else                              { wishlistCloud   = cards; updateCardCount('wl',  cards.length); }
+    else { wishlistCloud = cards; updateCardCount('wl', cards.length); }
     toast(`${label} guardada en la nube.`);
   } catch (e) {
     toast(`Error al guardar ${label.toLowerCase()}.`, 'err');
@@ -262,7 +262,7 @@ async function saveList(collection, inputId, cloudVar, label) {
 }
 
 $('saveCollectionBtn').addEventListener('click', () => saveList('collections', 'collectionInput', 'collectionCloud', 'Colección'));
-$('saveWishlistBtn'  ).addEventListener('click', () => saveList('wishlists',   'wishlistInput',   'wishlistCloud',   'Wishlist'));
+$('saveWishlistBtn').addEventListener('click', () => saveList('wishlists', 'wishlistInput', 'wishlistCloud', 'Wishlist'));
 
 // ── IMPORT MODE TABS ───────────────────────────────────────
 document.querySelectorAll('.imp-mode-tabs').forEach(tabGroup => {
@@ -290,11 +290,11 @@ function parseCSV(text) {
   if (header.includes('name')) {
     const cols = lines[0].split(',').map(c => c.trim().toLowerCase());
     const nameIdx = cols.findIndex(c => c === 'name' || c === 'card name' || c === 'cardname');
-    const qtyIdx  = cols.findIndex(c => c === 'count' || c === 'qty' || c === 'quantity' || c === 'amount');
+    const qtyIdx = cols.findIndex(c => c === 'count' || c === 'qty' || c === 'quantity' || c === 'amount');
 
     return lines.slice(1).flatMap(line => {
       const parts = parseCSVLine(line);
-      const name  = parts[nameIdx]?.trim();
+      const name = parts[nameIdx]?.trim();
       if (!name) return [];
       const qty = qtyIdx >= 0 ? parseInt(parts[qtyIdx]) || 1 : 1;
       return [`${qty} ${name}`];
@@ -318,13 +318,13 @@ function parseCSVLine(line) {
 }
 
 function setupCSVDrop(dropZoneId, fileInputId, statusId, textareaId) {
-  const zone  = $(dropZoneId);
+  const zone = $(dropZoneId);
   const input = $(fileInputId);
   const status = $(statusId);
 
   zone.addEventListener('click', () => input.click());
 
-  zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
   zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
   zone.addEventListener('drop', e => {
     e.preventDefault();
@@ -350,8 +350,8 @@ function setupCSVDrop(dropZoneId, fileInputId, statusId, textareaId) {
         return;
       }
       // Merge with existing text (avoid duplicates)
-      const existing  = $(textareaId).value.split('\n').map(l => l.trim()).filter(l => l);
-      const merged    = [...new Set([...existing, ...cards])];
+      const existing = $(textareaId).value.split('\n').map(l => l.trim()).filter(l => l);
+      const merged = [...new Set([...existing, ...cards])];
       $(textareaId).value = merged.join('\n');
       status.textContent = `✓ ${cards.length} cartas importadas desde ${file.name}`;
       status.className = 'imp-status ok';
@@ -374,7 +374,7 @@ function switchToTextTab(prefix) {
 }
 
 setupCSVDrop('colDropZone', 'colFileInput', 'colCsvStatus', 'collectionInput');
-setupCSVDrop('wlDropZone',  'wlFileInput',  'wlCsvStatus',  'wishlistInput');
+setupCSVDrop('wlDropZone', 'wlFileInput', 'wlCsvStatus', 'wishlistInput');
 
 // ── URL IMPORT (Moxfield / Archidekt) ─────────────────────
 // Both sites require a CORS proxy for direct fetch. We use a
@@ -393,12 +393,13 @@ async function fetchDeckFromUrl(rawUrl, statusId, textareaId) {
     // API endpoint:    https://api2.moxfield.com/v2/decks/all/<id>
     const moxMatch = rawUrl.match(/moxfield\.com\/decks\/([\w-]+)/);
     if (moxMatch) {
-      const deckId  = moxMatch[1];
-      const apiUrl  = `https://api2.moxfield.com/v2/decks/all/${deckId}`;
-      const proxy   = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`;
-      const resp    = await fetch(proxy);
-      const outer   = await resp.json();
-      const data    = JSON.parse(outer.contents);
+      const deckId = moxMatch[1];
+      const apiUrl = `https://api2.moxfield.com/v2/decks/all/${deckId}`;
+      const proxy = `https://corsproxy.io/?${encodeURIComponent(apiUrl)}`;
+
+      const resp = await fetch(proxy);
+      if (!resp.ok) throw new Error(`Error HTTP: ${resp.status}`);
+      const data = await resp.json(); // Obtenemos el JSON directo
 
       const sections = ['mainboard', 'sideboard', 'commanders', 'companions', 'maybeboard'];
       for (const section of sections) {
@@ -421,10 +422,11 @@ async function fetchDeckFromUrl(rawUrl, statusId, textareaId) {
     if (archiMatch) {
       const deckId = archiMatch[1];
       const apiUrl = `https://archidekt.com/api/decks/${deckId}/`;
-      const proxy  = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`;
-      const resp   = await fetch(proxy);
-      const outer  = await resp.json();
-      const data   = JSON.parse(outer.contents);
+      const proxy = `https://corsproxy.io/?${encodeURIComponent(apiUrl)}`;
+
+      const resp = await fetch(proxy);
+      if (!resp.ok) throw new Error(`Error HTTP: ${resp.status}`);
+      const data = await resp.json(); // Obtenemos el JSON directo
 
       for (const card of data.cards) {
         if (card.category === 'Maybeboard') continue;
@@ -448,7 +450,7 @@ async function fetchDeckFromUrl(rawUrl, statusId, textareaId) {
 
 function mergeCards(textareaId, newCards) {
   const existing = $(textareaId).value.split('\n').map(l => l.trim()).filter(l => l);
-  const merged   = [...new Set([...existing, ...newCards])];
+  const merged = [...new Set([...existing, ...newCards])];
   $(textareaId).value = merged.join('\n');
   const prefix = textareaId.includes('collection') ? 'col' : 'wl';
   switchToTextTab(prefix);
@@ -481,12 +483,12 @@ $('refreshMatchesBtn').addEventListener('click', async () => {
   }
 
   try {
-    const all  = await db.collection('collections').get();
-    let html   = '';
+    const all = await db.collection('collections').get();
+    let html = '';
 
     all.forEach(doc => {
       if (doc.id === currentPlayer.uid) return;
-      const data    = doc.data();
+      const data = doc.data();
       const partnerCards = data.cards || [];
 
       const matches = wishlistCloud.filter(wl =>
@@ -521,10 +523,10 @@ async function loadAdminPanel() {
 
     list.innerHTML = '';
     snap.forEach(doc => {
-      const d    = doc.data();
-      const uid  = doc.id;
+      const d = doc.data();
+      const uid = doc.id;
       const isMe = uid === currentPlayer.uid;
-      const row  = document.createElement('div');
+      const row = document.createElement('div');
       row.className = 'player-row';
       row.innerHTML = `
         <div>
@@ -545,9 +547,9 @@ async function loadAdminPanel() {
     // Toggle admin button handler
     list.querySelectorAll('[data-uid]').forEach(btn => {
       btn.addEventListener('click', async () => {
-        const uid      = btn.dataset.uid;
+        const uid = btn.dataset.uid;
         const wasAdmin = btn.dataset.admin === 'true';
-        btn.disabled   = true;
+        btn.disabled = true;
         try {
           await db.collection('players').doc(uid).update({ isAdmin: !wasAdmin });
           toast(`Permisos actualizados.`);

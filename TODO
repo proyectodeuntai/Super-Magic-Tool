@@ -1,0 +1,8 @@
+-  ~~Datos huérfanos al borrar cuenta (nombre de usuario, colecciones, etc...) ~~
+- ~~Usuario se registra, la aplicación le pasa al inicio de sesión **sin darle ninguna confirmación de que su cuenta ha sido creada**, pero, debe verificar el correo. Sin embargo, sí especifica que debe confirmar la cuenta antes de poder entrar~~
+- ~~en el structure.html debe existir un botón para volver a index.html~~
+- ~~index.html debe ser convertido a los estilos del structure.html~~
+- ~~el botón de inicio no hace nada~~
+-  ~~no hay botón para volver atrás, bien en la aplicación, bien en el login~~
+-  ~~Al añadir una wishlist, la cantidad no se actualiza en buscar coincidencias ~~
+-  ~~Los botones de cerrar sesión y eliminar cuenta, o actualizar nombre de usuario, deben estar dentro de un desplegable, no expuesto ~~

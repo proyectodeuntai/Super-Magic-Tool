@@ -15,7 +15,6 @@ const db = firebase.firestore();
 const auth = firebase.auth();
 
 let currentPlayer = null;
-// Flag para bloquear onAuthStateChanged durante el flujo de registro
 let isRegistering = false;
 
 let myCollections = { "Principal": [] };
@@ -47,14 +46,11 @@ function parseCardString(cardStr) {
 }
 
 // ── MODAL BAUHAUS ──
-// Uso: bModal.alert('Mensaje') / bModal.confirm('¿Seguro?') / bModal.prompt('Nombre:')
-// Todos devuelven Promises.
 const bModal = (() => {
-  // Crear el elemento una sola vez
   const backdrop = document.createElement('div');
   backdrop.id = 'bModalBackdrop';
   backdrop.style.cssText = `
-    position:fixed;inset:0;z-index:500;
+    position:fixed;inset:0;z-index:5000;
     background:rgba(0,0,0,0.65);
     display:none;align-items:center;justify-content:center;
   `;
@@ -65,7 +61,7 @@ const bModal = (() => {
       position:relative;box-shadow:10px 10px 0px var(--border);
     ">
       <p id="bModalMsg" style="font-weight:700;font-size:1rem;margin-bottom:1.25rem;line-height:1.4;"></p>
-      <input id="bModalInput" class="inp" type="text" style="display:none;margin-bottom:1rem;" placeholder="">
+      <input id="bModalInput" class="inp" type="password" style="display:none;margin-bottom:1rem;" placeholder="">
       <div style="display:flex;justify-content:flex-end;gap:.75rem;">
         <button id="bModalCancel" class="btn btn-ghost btn-sm" style="display:none;">Cancelar</button>
         <button id="bModalOk"     class="btn btn-gold  btn-sm">Aceptar</button>
@@ -111,7 +107,6 @@ const bModal = (() => {
       input().placeholder = placeholder;
       cancel().style.display = 'inline-flex';
       open();
-      // Focus after display
       setTimeout(() => input().focus(), 50);
       ok().onclick = () => { const v = input().value.trim(); close(); resolve(v || null); };
       cancel().onclick = () => { close(); resolve(null); };
@@ -158,7 +153,6 @@ TABS.forEach(tab => {
 
 // ── AUTH STATE OBSERVER ────────────────────────────────────
 auth.onAuthStateChanged(async user => {
-  // Durante el registro gestionamos manualmente la sesión — ignorar el evento
   if (isRegistering) return;
 
   if (user && user.emailVerified) {
@@ -180,33 +174,34 @@ auth.onAuthStateChanged(async user => {
 
       currentPlayer = { uid: user.uid, name: username, isAdmin };
       $('authPillText').textContent = username;
-      $('authPill').classList.add('active');
-      $('logoutBtn').style.display = 'inline-block';
-      if ($('tabAdminBtn')) $('tabAdminBtn').style.display = isAdmin ? 'block' : 'none';
+      $('userMenuBtn').classList.add('active');
+
+      if ($('tabAdminBtn')) {
+        if (isAdmin) $('tabAdminBtn').classList.remove('hidden');
+        else $('tabAdminBtn').classList.add('hidden');
+      }
 
       $('loginScreen').classList.add('hidden');
-      $('mainApp').style.display = 'block';
+      $('mainApp').classList.remove('hidden');
 
       await loadCloudData();
       toast(`Bienvenido, ${username}`);
     } catch (e) {
       console.error(e);
-      toast('Error al cargar los datos. Inténtalo de nuevo.', 'err');
+      toast('Error de permisos al cargar tu perfil en Firestore.', 'err');
     }
 
   } else {
-    // Sin sesión o email no verificado
     if (user && !user.emailVerified) {
-      // Usuario logado pero sin verificar: cerrar sesión silenciosamente
       await auth.signOut();
       return;
     }
 
     currentPlayer = null;
     $('authPillText').textContent = 'Sin sesión';
-    $('authPill').classList.remove('active');
-    $('logoutBtn').style.display = 'none';
-    if ($('tabAdminBtn')) $('tabAdminBtn').style.display = 'none';
+    $('userMenuBtn').classList.remove('active');
+
+    if ($('tabAdminBtn')) $('tabAdminBtn').classList.add('hidden');
 
     TABS.forEach(t => { $(`panel${t}`)?.classList.remove('active'); $(`tab${t}Btn`)?.classList.remove('active'); });
     $('panelHome')?.classList.add('active');
@@ -217,24 +212,23 @@ auth.onAuthStateChanged(async user => {
     activeColList = "Principal";
     activeWlList = "Principal";
 
-    $('mainApp').style.display = 'none';
+    $('mainApp').classList.add('hidden');
     $('loginScreen').classList.remove('hidden');
     setAuthState('login');
   }
 });
 
 // ── AUTH FORM ──────────────────────────────────────────────
-// Códigos de error Firebase → mensaje para el usuario
 const AUTH_ERRORS = {
   'auth/user-not-found': 'El correo o la contraseña no son correctos.',
   'auth/wrong-password': 'El correo o la contraseña no son correctos.',
   'auth/invalid-credential': 'El correo o la contraseña no son correctos.',
   'auth/invalid-login-credentials': 'El correo o la contraseña no son correctos.',
-  'auth/too-many-requests': 'Demasiados intentos fallidos. Espera unos minutos o restablece tu contraseña.',
-  'auth/email-already-in-use': 'Ese correo electrónico ya está registrado. ¿Quieres iniciar sesión?',
+  'auth/too-many-requests': 'Demasiados intentos fallidos. Espera unos minutos.',
+  'auth/email-already-in-use': 'Ese correo electrónico ya está registrado.',
   'auth/invalid-email': 'El formato del correo no es válido.',
   'auth/weak-password': 'La contraseña debe tener al menos 6 caracteres.',
-  'auth/network-request-failed': 'Sin conexión. Comprueba tu red e inténtalo de nuevo.',
+  'auth/network-request-failed': 'Sin conexión. Comprueba tu red.',
 };
 
 $('authForm').addEventListener('submit', async e => {
@@ -249,7 +243,6 @@ $('authForm').addEventListener('submit', async e => {
   if (!email) return showAuthFeedback('Introduzca el correo electrónico.');
 
   try {
-    // ── LOGIN ────────────────────────────────────────────
     if (state === 'login') {
       if (!password) return showAuthFeedback('Introduce tu contraseña.');
       const cred = await auth.signInWithEmailAndPassword(email, password);
@@ -257,23 +250,18 @@ $('authForm').addEventListener('submit', async e => {
         await auth.signOut();
         showAuthFeedback('Debes verificar tu correo antes de entrar. Revisa tu bandeja de entrada o SPAM.');
       }
-      // Si emailVerified === true, onAuthStateChanged abre la app
 
-      // ── REGISTRO ─────────────────────────────────────────
     } else if (state === 'register') {
       if (!username) return showAuthFeedback('Elige un nombre de jugador.');
       if (!password || password.length < 6) return showAuthFeedback('La contraseña debe tener al menos 6 caracteres.');
 
-      // Bloquear el observer durante todo el flujo de registro
       isRegistering = true;
       let cred;
       try {
         cred = await auth.createUserWithEmailAndPassword(email, password);
 
-        // Con sesión activa ya podemos consultar Firestore
         const nameLower = username.toLowerCase();
-        const existing = await db.collection('players')
-          .where('nameLower', '==', nameLower).limit(1).get();
+        const existing = await db.collection('players').where('nameLower', '==', nameLower).limit(1).get();
 
         if (!existing.empty) {
           await cred.user.delete();
@@ -292,61 +280,182 @@ $('authForm').addEventListener('submit', async e => {
         isRegistering = false;
       }
 
+      setAuthState('login');
       showAuthFeedback(
         `¡Cuenta creada! Hemos enviado un correo de verificación a <strong>${escapeHtml(email)}</strong>. Haz clic en el enlace y luego inicia sesión.`,
         'success'
       );
-      setAuthState('login');
 
-      // ── RECUPERAR CONTRASEÑA ──────────────────────────────
     } else if (state === 'forgot') {
       await auth.sendPasswordResetEmail(email);
       showAuthFeedback('Enlace enviado. Revisa tu correo (y la carpeta de SPAM).', 'success');
     }
 
   } catch (err) {
-    // Errores esperados de auth — no son bugs, no los mostramos en consola
     const friendly = AUTH_ERRORS[err.code];
     if (friendly) {
       showAuthFeedback(friendly);
     } else {
-      // Error inesperado — sí lo logamos
       console.error('[Auth error]', err);
       showAuthFeedback('Algo salió mal. Inténtalo de nuevo.');
     }
   }
 });
 
-$('logoutBtn').addEventListener('click', async () => {
-  await auth.signOut();
-  toast('Sesión cerrada.', 'inf');
-});
+// ── USER MODAL PANEL & ACTIONS ─────────────────────────────
+const accModal = $('accountModal');
 
-// ── CARGA DE DATOS ─────────────────────────────────────────
+if ($('userMenuBtn')) {
+  $('userMenuBtn').addEventListener('click', () => {
+    if (!currentPlayer) return;
+    $('usernameChangeStatus').classList.add('hidden');
+    $('newUsernameInput').value = currentPlayer.name;
+    accModal.classList.remove('hidden');
+  });
+}
+
+if ($('closeAccountModalBtn')) {
+  $('closeAccountModalBtn').addEventListener('click', () => accModal.classList.add('hidden'));
+}
+
+if ($('modalLogoutBtn')) {
+  $('modalLogoutBtn').addEventListener('click', async () => {
+    accModal.classList.add('hidden');
+    await auth.signOut();
+    toast('Sesión cerrada.', 'inf');
+  });
+}
+
+// Lógica de liberación y cambio de nombre
+if ($('saveNewUsernameBtn')) {
+  $('saveNewUsernameBtn').addEventListener('click', async () => {
+    const input = $('newUsernameInput');
+    const status = $('usernameChangeStatus');
+    const newName = input.value.trim();
+
+    if (!newName) {
+      status.classList.remove('hidden'); status.style.color = 'var(--primary)';
+      status.textContent = 'El nombre no puede estar vacío.';
+      return;
+    }
+    if (newName.toLowerCase() === currentPlayer.name.toLowerCase()) {
+      accModal.classList.add('hidden');
+      return;
+    }
+
+    status.classList.remove('hidden'); status.style.color = 'var(--muted)';
+    status.textContent = 'Comprobando disponibilidad...';
+
+    try {
+      const existing = await db.collection('players').where('nameLower', '==', newName.toLowerCase()).limit(1).get();
+      if (!existing.empty && existing.docs[0].id !== currentPlayer.uid) {
+        status.textContent = 'Ese nombre ya está en uso. Prueba otro.';
+        status.style.color = 'var(--rose)';
+        return;
+      }
+
+      await db.collection('players').doc(currentPlayer.uid).update({
+        name: newName, nameLower: newName.toLowerCase()
+      });
+
+      currentPlayer.name = newName;
+      $('authPillText').textContent = newName;
+
+      status.style.color = 'var(--emerald)';
+      status.textContent = '¡Nombre actualizado correctamente!';
+      toast('Nombre guardado.');
+      setTimeout(() => { accModal.classList.add('hidden'); }, 1200);
+    } catch (e) {
+      status.style.color = 'var(--primary)';
+      status.textContent = 'Error al verificar o guardar. Comprueba tus permisos.';
+    }
+  });
+}
+
+// Borrado seguro sin dejar datos huérfanos
+if ($('modalDeleteBtn')) {
+  $('modalDeleteBtn').addEventListener('click', async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const ok = await bModal.confirm('¿Confirmas que deseas eliminar tu cuenta? Se borrará todo tu inventario y el nombre quedará libre en el acto.');
+    if (!ok) return;
+
+    const pwd = await bModal.prompt('Por seguridad, reintroduce tu contraseña para confirmar la baja:');
+    if (!pwd) return;
+
+    try {
+      const credAuth = firebase.auth.EmailAuthProvider.credential(user.email, pwd);
+      await user.reauthenticateWithCredential(credAuth);
+
+      toast('Autenticación correcta. Purgando datos...', 'inf');
+
+      await db.collection('collections').doc(user.uid).delete().catch(() => { });
+      await db.collection('wishlists').doc(user.uid).delete().catch(() => { });
+      await db.collection('players').doc(user.uid).delete().catch(() => { });
+
+      accModal.classList.add('hidden');
+      await user.delete();
+
+      currentPlayer = null;
+      toast('Tu cuenta ha sido eliminada por completo.', 'inf');
+    } catch (err) {
+      console.error("Detalle del error de baja:", err);
+      if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-login-credentials' || err.code === 'auth/internal-error') {
+        await bModal.alert('La contraseña introducida es incorrecta. Acción abortada.');
+      } else {
+        await bModal.alert('Error de sincronización con el servidor. Inténtalo de nuevo.');
+      }
+    }
+  });
+}
+
+// ── NAVIGATION HELPERS ─────────────────────────────────────
+function switchTab(panelId) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+
+  const activePanel = $(panelId);
+  if (activePanel) activePanel.classList.add('active');
+
+  const btnMap = { panelHome: 'tabHomeBtn', panelCollection: 'tabCollectionBtn', panelWishlist: 'tabWishlistBtn', panelAdmin: 'tabAdminBtn' };
+  const targetBtn = $(btnMap[panelId]);
+  if (targetBtn) targetBtn.classList.add('active');
+
+  if (panelId === 'panelHome') calculateMatches();
+  if (panelId === 'panelAdmin') loadAdminPanel();
+}
+
+// ── DATA LOADING & UI SYNC ─────────────────────────────────
 async function loadCloudData() {
   if (!currentPlayer) return;
 
-  const colDoc = await db.collection('collections').doc(currentPlayer.uid).get();
-  if (colDoc.exists) {
-    const data = colDoc.data();
-    if (data.lists) myCollections = data.lists;
-    else if (data.cards) myCollections = { "Principal": data.cards };
-  }
+  try {
+    const colDoc = await db.collection('collections').doc(currentPlayer.uid).get();
+    if (colDoc.exists) {
+      const data = colDoc.data();
+      if (data.lists) myCollections = data.lists;
+      else if (data.cards) myCollections = { "Principal": data.cards };
+    }
+  } catch (e) { console.warn("Aviso permisos carga colección:", e); }
+
   if (!myCollections[activeColList]) activeColList = Object.keys(myCollections)[0] || "Principal";
   updateListUI('col');
 
-  const wlDoc = await db.collection('wishlists').doc(currentPlayer.uid).get();
-  if (wlDoc.exists) {
-    const data = wlDoc.data();
-    if (data.lists) myWishlists = data.lists;
-    else if (data.cards) myWishlists = { "Principal": data.cards };
-  }
+  try {
+    const wlDoc = await db.collection('wishlists').doc(currentPlayer.uid).get();
+    if (wlDoc.exists) {
+      const data = wlDoc.data();
+      if (data.lists) myWishlists = data.lists;
+      else if (data.cards) myWishlists = { "Principal": data.cards };
+    }
+  } catch (e) { console.warn("Aviso permisos carga wishlist:", e); }
+
   if (!myWishlists[activeWlList]) activeWlList = Object.keys(myWishlists)[0] || "Principal";
   updateListUI('wl');
   renderWishlistMatchSelector();
 }
 
-// ── LIST UI ────────────────────────────────────────────────
 function updateListUI(prefix) {
   const isCol = prefix === 'col';
   const dict = isCol ? myCollections : myWishlists;
@@ -372,7 +481,6 @@ function updateListUI(prefix) {
 $('colListSelect').addEventListener('change', e => { activeColList = e.target.value; updateListUI('col'); });
 $('wlListSelect').addEventListener('change', e => { activeWlList = e.target.value; updateListUI('wl'); });
 
-// Nueva lista
 async function handleNewList(prefix) {
   const name = await bModal.prompt('Nombre de la nueva lista:', 'Ej: Mazo Pececillo');
   if (!name) return;
@@ -388,7 +496,6 @@ async function handleNewList(prefix) {
 $('colNewListBtn').addEventListener('click', () => handleNewList('col'));
 $('wlNewListBtn').addEventListener('click', () => handleNewList('wl'));
 
-// Eliminar lista
 async function handleDeleteList(prefix) {
   const isCol = prefix === 'col';
   const dict = isCol ? myCollections : myWishlists;
@@ -406,7 +513,6 @@ async function handleDeleteList(prefix) {
 $('colDelListBtn').addEventListener('click', () => handleDeleteList('col'));
 $('wlDelListBtn').addEventListener('click', () => handleDeleteList('wl'));
 
-// Vaciar lista
 async function handleClearList(prefix) {
   const isCol = prefix === 'col';
   const active = isCol ? activeColList : activeWlList;
@@ -415,12 +521,13 @@ async function handleClearList(prefix) {
   if (isCol) myCollections[activeColList] = []; else myWishlists[activeWlList] = [];
   updateListUI(prefix);
   saveFullDictToCloud(prefix);
+  if (!isCol) renderWishlistMatchSelector();
   toast('Lista vaciada.');
 }
 $('colClearListBtn').addEventListener('click', () => handleClearList('col'));
 $('wlClearListBtn').addEventListener('click', () => handleClearList('wl'));
 
-// ── GUARDADO EN LA NUBE ────────────────────────────────────
+// ── CLOUD SAVING ───────────────────────────────────────────
 async function saveFullDictToCloud(prefix) {
   if (!currentPlayer) return;
   const collectionName = prefix === 'col' ? 'collections' : 'wishlists';
@@ -445,6 +552,7 @@ async function saveCurrentActiveList(prefix) {
   if (isCol) myCollections[active] = cards; else myWishlists[active] = cards;
   updateListUI(prefix);
   await saveFullDictToCloud(prefix);
+  if (!isCol) renderWishlistMatchSelector(); // Refresco en tiempo real del Matcher
   toast(`"${active}" guardada.`);
 }
 $('saveCollectionBtn').addEventListener('click', () => saveCurrentActiveList('col'));
@@ -455,7 +563,7 @@ function updateCardCount(prefix, n) {
   if (el) el.textContent = n > 0 ? `${n} carta${n !== 1 ? 's' : ''}` : '';
 }
 
-// ── RENDER VISUAL LIST ─────────────────────────────────────
+// ── VISUAL LIST MANAGER ────────────────────────────────────
 function renderVisualList(prefix, filterText = '') {
   const container = $(`${prefix}ListView`);
   const isCol = prefix === 'col';
@@ -491,6 +599,7 @@ function renderVisualList(prefix, filterText = '') {
       if (isCol) myCollections[activeColList] = arr; else myWishlists[activeWlList] = arr;
       updateListUI(prefix);
       saveFullDictToCloud(prefix);
+      if (!isCol) renderWishlistMatchSelector(); // Refresco si se borra visualmente
       toast('Carta eliminada.', 'inf');
     });
     container.appendChild(row);
@@ -508,7 +617,7 @@ function renderVisualList(prefix, filterText = '') {
   if (btn) btn.addEventListener('click', () => { inp.value = ''; renderVisualList(prefix, ''); });
 });
 
-// ── IMPORT MODE TABS ───────────────────────────────────────
+// ── IMPORT MODULE ──────────────────────────────────────────
 document.querySelectorAll('.imp-mode-tabs').forEach(tabGroup => {
   tabGroup.querySelectorAll('.imp-tab').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -522,7 +631,6 @@ document.querySelectorAll('.imp-mode-tabs').forEach(tabGroup => {
   });
 });
 
-// ── MERGE CARDS (importación) ──────────────────────────────
 function mergeCards(textareaId, newCards) {
   const existing = $(textareaId).value.split('\n').map(l => l.trim()).filter(l => l);
   const merged = [...new Set([...existing, ...newCards])];
@@ -531,14 +639,14 @@ function mergeCards(textareaId, newCards) {
   if (prefix === 'col') myCollections[activeColList] = merged;
   else myWishlists[activeWlList] = merged;
   updateListUI(prefix);
-  // Volver a pestaña de texto para que el usuario vea el resultado
+  if (prefix === 'wl') renderWishlistMatchSelector();
+
   const panel = prefix === 'col' ? $('panelCollection') : $('panelWishlist');
   const tabGroup = panel.querySelector('.imp-mode-tabs');
   tabGroup.querySelectorAll('.imp-tab').forEach(b => b.classList.toggle('active', b.dataset.target === `${prefix}-text`));
   panel.querySelectorAll('.imp-panel').forEach(p => p.classList.toggle('active', p.id === `${prefix}-text`));
 }
 
-// ── URL IMPORT (Moxfield / Archidekt) ─────────────────────
 async function fetchDeckFromUrl(rawUrl, statusId, textareaId) {
   const status = $(statusId);
   status.textContent = 'Obteniendo lista…';
@@ -594,7 +702,6 @@ $('wlFetchUrlBtn').addEventListener('click', () => {
   fetchDeckFromUrl(url, 'wlUrlStatus', 'wishlistInput');
 });
 
-// ── CSV IMPORT ─────────────────────────────────────────────
 function parseCSV(text) {
   const lines = text.split(/\r?\n/).filter(l => l.trim());
   if (!lines.length) return [];
@@ -655,7 +762,7 @@ function setupCSVDrop(dropZoneId, fileInputId, statusId, textareaId) {
 setupCSVDrop('colDropZone', 'colFileInput', 'colCsvStatus', 'collectionInput');
 setupCSVDrop('wlDropZone', 'wlFileInput', 'wlCsvStatus', 'wishlistInput');
 
-// ── MATCHES ────────────────────────────────────────────────
+// ── MATCHES & CROSS-REFERENCE ──────────────────────────────
 function renderWishlistMatchSelector() {
   const container = $('wishlistMatchSelector');
   if (!container) return;
@@ -759,11 +866,10 @@ $('refreshMatchesBtn').addEventListener('click', async () => {
 
   } catch (e) {
     console.error(e);
-    container.innerHTML = '<p style="color:var(--rose);font-weight:700;">Error al consultar colecciones.</p>';
+    container.innerHTML = '<p style="color:var(--rose);font-weight:700;">Error al consultar colecciones. Verifica permisos en Firestore.</p>';
   }
 });
 
-// ── ADMIN PANEL ────────────────────────────────────────────
 async function loadAdminPanel() {
   if (!currentPlayer?.isAdmin) return;
   const list = $('adminPlayerList');
@@ -816,6 +922,6 @@ async function loadAdminPanel() {
 
   } catch (e) {
     console.error(e);
-    list.innerHTML = '<p style="color:var(--rose);font-weight:700;">Error al cargar jugadores.</p>';
+    list.innerHTML = '<p style="color:var(--rose);font-weight:700;">Error al cargar jugadores (Permisos).</p>';
   }
 }

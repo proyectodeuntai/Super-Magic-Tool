@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Magic Card Matcher</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&amp;family=JetBrains+Mono:wght@400;600&amp;family=Space+Grotesk:wght@400;500;600;700&amp;family=Syne:wght@700;800&amp;display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="magic_icon_toolbox.svg" type="image/svg+xml">
+</head>
+
+<body>
+
+  <div id="loginScreen">
+    <a href="index.html" class="back-home-float">Volver al inicio</a>
+
+    <div class="geo-bg">
+      <div class="geo geo-1"></div>
+      <div class="geo geo-2"></div>
+      <div class="geo geo-3"></div>
+      <div class="geo geo-4"></div>
+      <div class="geo geo-5"></div>
+      <div class="geo geo-6"></div>
+      <div class="geo geo-7"></div>
+      <div class="geo geo-8"></div>
+      <div class="geo geo-9"></div>
+    </div>
+    <div class="login-card">
+      <div class="auth-modal" id="authModalContainer" data-state="login">
+
+        <div class="auth-view-login modal-title">Iniciar Sesión</div>
+        <div class="auth-view-register modal-title">Crear Cuenta</div>
+        <div class="auth-view-forgot modal-title">Recuperar Acceso</div>
+
+        <button class="auth-back-btn auth-view-register" id="backFromRegister">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M8 1L3 6L8 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
+          Volver al inicio de sesión
+        </button>
+        <button class="auth-back-btn auth-view-forgot" id="backFromForgot">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M8 1L3 6L8 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
+          Volver al inicio de sesión
+        </button>
+        <div id="authFeedback" class="auth-feedback"></div>
+
+        <form id="authForm" novalidate>
+          <div class="field">
+            <label for="authEmail">Correo Electrónico</label>
+            <input type="email" class="inp" id="authEmail" placeholder="ejemplo@dominio.com" autocomplete="email">
+          </div>
+
+          <div class="field auth-view-register">
+            <label for="authUsername">Nombre de Jugador (Alias)</label>
+            <input type="text" class="inp" id="authUsername" placeholder="Tu alias de juego" autocomplete="username">
+          </div>
+
+          <div class="field auth-hide-forgot">
+            <label for="authPassword">Contraseña</label>
+            <input type="password" class="inp" id="authPassword" placeholder="••••••••" autocomplete="current-password">
+          </div>
+
+          <div class="auth-navigation-links auth-view-login">
+            <a href="#" id="linkToRegister">¿No tienes cuenta? Regístrate aquí</a>
+            <a href="#" id="linkToForgot">¿Has olvidado tu contraseña?</a>
+          </div>
+
+          <div class="modal-actions">
+            <button type="submit" class="btn btn-gold auth-view-login" id="btnActionLogin">Entrar al Sistema</button>
+            <button type="submit" class="btn btn-primary auth-view-register" id="btnActionRegister">Registrarse e
+              Ingresar</button>
+            <button type="submit" class="btn btn-emerald auth-view-forgot" id="btnActionForgot">Enviar Enlace</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div id="mainApp" class="hidden">
+    <header>
+      <div class="flex items-center gap-md">
+        <a href="index.html" class="btn btn-ghost btn-sm" title="Volver al inicio">Volver</a>
+        <a class="logo" href="index.html">Magic <span>Card Matcher</span></a>
+      </div>
+
+      <div class="auth-bar">
+        <button class="auth-pill pointer" id="userMenuBtn"
+          style="border: 2px solid var(--border); background: var(--surface);">
+          <span class="dot"></span>
+          <span id="authPillText">Sin sesión</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="container">
+      <div class="tabs-nav">
+        <button class="tab-btn active" id="tabHomeBtn">Buscar coincidencias</button>
+        <button class="tab-btn" id="tabCollectionBtn">Mi Colección</button>
+        <button class="tab-btn" id="tabWishlistBtn">Mi Wishlist</button>
+        <button class="tab-btn hidden" id="tabAdminBtn">Panel admin</button>
+      </div>
+
+      <div class="panel active" id="panelHome">
+        <h2>Intersecciones de Cartas</h2>
+        <p class="text-muted mb-4">Descubre qué jugadores tienen cartas que estás buscando.</p>
+
+        <div class="list-manager mb-4 match-selector-box">
+          <label class="text-muted text-xs font-bold uppercase mb-2 block">¿Qué wishlists quieres buscar?</label>
+          <div id="wishlistMatchSelector" class="flex gap-2 flex-wrap">
+            <p class="text-xs text-muted">Cargando tus wishlists...</p>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="refreshMatchesBtn">Buscar Coincidencias</button>
+        <div id="matchesContainer" class="grid-matches mt-2">
+          <p class="text-muted">Selecciona tus wishlists y pulsa el botón para buscar cruces en tiempo real.</p>
+        </div>
+      </div>
+
+      <div class="panel" id="panelCollection">
+        <h2>Mi Colección</h2>
+        <p class="text-muted mb-4">Cartas que tienes disponibles para intercambio.</p>
+
+        <div class="list-manager flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2">
+            <select id="colListSelect" class="inp inp-sm select-auto pointer"></select>
+            <button class="btn btn-sm btn-ghost" id="colNewListBtn" title="Crear nueva lista">Crear nueva lista</button>
+            <button class="btn btn-sm btn-ghost text-rose" id="colDelListBtn" title="Eliminar lista actual">Eliminar
+              lista</button>
+          </div>
+          <button class="btn btn-sm btn-ghost text-rose" id="colClearListBtn" title="Vaciar todas las cartas">Vaciar
+            lista</button>
+        </div>
+
+        <div class="imp-mode-tabs">
+          <button class="imp-tab active" data-target="col-view">Ver Lista</button>
+          <button class="imp-tab" data-target="col-text">Texto Raw</button>
+          <button class="imp-tab" data-target="col-csv">CSV</button>
+          <button class="imp-tab" data-target="col-url">URL</button>
+        </div>
+
+        <div class="imp-panel active" id="col-view">
+          <div class="search-wrapper mb-4">
+            <input type="text" id="colSearchInput" class="inp inp-sm w-full"
+              placeholder="🔍 Buscar carta en esta lista...">
+            <button id="colClearSearchBtn" class="clear-search-btn" title="Limpiar búsqueda">✕</button>
+          </div>
+          <div id="colListView" class="visual-list">
+            <p class="text-muted">Cargando colección...</p>
+          </div>
+        </div>
+
+        <div class="imp-panel" id="col-text">
+          <textarea class="inp font-mono text-area-tall" id="collectionInput"
+            placeholder="Ejemplo:&#10;4 Lightning Bolt&#10;1 Black Lotus&#10;2 Counterspell"></textarea>
+        </div>
+
+        <div class="imp-panel" id="col-csv">
+          <div class="drop-zone" id="colDropZone">
+            <p>Arrastra tu CSV aquí o haz clic para seleccionar</p>
+            <small>Columna "name" o "Card Name" — acepta exports de MTGO y Moxfield CSV</small>
+          </div>
+          <input type="file" id="colFileInput" accept=".csv,.txt" class="hidden">
+          <p class="imp-status" id="colCsvStatus"></p>
+        </div>
+
+        <div class="imp-panel" id="col-url">
+          <div class="url-row">
+            <div class="field field-flex-1 mb-0">
+              <label for="colUrlInput">URL de tu lista</label>
+              <input type="url" class="inp" id="colUrlInput" placeholder="https://www.moxfield.com/decks/...">
+            </div>
+            <button class="btn btn-blue" id="colFetchUrlBtn">Importar</button>
+          </div>
+          <div class="url-badges">
+            <span class="url-badge">Moxfield</span>
+            <span class="url-badge">Archidekt</span>
+          </div>
+          <p class="imp-status" id="colUrlStatus"></p>
+        </div>
+
+        <div class="mt-2 flex justify-between items-center header-margin">
+          <button class="btn btn-gold" id="saveCollectionBtn">Guardar Lista Actual</button>
+          <span class="text-xs text-muted" id="colCardCount"></span>
+        </div>
+      </div>
+
+      <div class="panel" id="panelWishlist">
+        <h2>Mi Wishlist</h2>
+        <p class="text-muted mb-4">Cartas que necesitas para tus mazos.</p>
+
+        <div class="list-manager flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2">
+            <select id="wlListSelect" class="inp inp-sm select-auto pointer"></select>
+            <button class="btn btn-sm btn-ghost" id="wlNewListBtn" title="Crear nueva lista">Crear nueva lista</button>
+            <button class="btn btn-sm btn-ghost text-rose" id="wlDelListBtn" title="Eliminar lista actual">Eliminar
+              lista</button>
+          </div>
+          <button class="btn btn-sm btn-ghost text-rose" id="wlClearListBtn" title="Vaciar todas las cartas">Vaciar
+            lista</button>
+        </div>
+
+        <div class="imp-mode-tabs">
+          <button class="imp-tab active" data-target="wl-view">Ver Lista</button>
+          <button class="imp-tab" data-target="wl-text">Texto Raw</button>
+          <button class="imp-tab" data-target="wl-csv">CSV</button>
+          <button class="imp-tab" data-target="wl-url">URL</button>
+        </div>
+
+        <div class="imp-panel active" id="wl-view">
+          <div class="search-wrapper mb-4">
+            <input type="text" id="wlSearchInput" class="inp inp-sm w-full"
+              placeholder="🔍 Buscar carta en esta lista...">
+            <button id="wlClearSearchBtn" class="clear-search-btn" title="Limpiar búsqueda">✕</button>
+          </div>
+          <div id="wlListView" class="visual-list">
+            <p class="text-muted">Cargando wishlist...</p>
+          </div>
+        </div>
+
+        <div class="imp-panel" id="wl-text">
+          <textarea class="inp font-mono text-area-tall" id="wishlistInput"
+            placeholder="Ejemplo:&#10;4 Ragavan, Nimble Pilferer&#10;2 Force of Will"></textarea>
+        </div>
+
+        <div class="imp-panel" id="wl-csv">
+          <div class="drop-zone" id="wlDropZone">
+            <p>Arrastra tu CSV aquí o haz clic para seleccionar</p>
+            <small>Columna "name" o "Card Name" — acepta exports de MTGO y Moxfield CSV</small>
+          </div>
+          <input type="file" id="wlFileInput" accept=".csv,.txt" class="hidden">
+          <p class="imp-status" id="wlCsvStatus"></p>
+        </div>
+
+        <div class="imp-panel" id="wl-url">
+          <div class="url-row">
+            <div class="field field-flex-1 mb-0">
+              <label for="wlUrlInput">URL de tu lista</label>
+              <input type="url" class="inp" id="wlUrlInput" placeholder="https://www.moxfield.com/decks/...">
+            </div>
+            <button class="btn btn-blue" id="wlFetchUrlBtn">Importar</button>
+          </div>
+          <div class="url-badges">
+            <span class="url-badge">Moxfield</span>
+            <span class="url-badge">Archidekt</span>
+          </div>
+          <p class="imp-status" id="wlUrlStatus"></p>
+        </div>
+
+        <div class="mt-2 flex justify-between items-center header-margin">
+          <button class="btn btn-gold" id="saveWishlistBtn">Guardar Lista Actual</button>
+          <span class="text-xs text-muted" id="wlCardCount"></span>
+        </div>
+      </div>
+
+      <div class="panel" id="panelAdmin">
+        <h2>Admin del Grupo</h2>
+        <p class="text-muted mb-4">Gestión de jugadores y permisos.</p>
+
+        <div class="admin-section">
+          <h3>Jugadores registrados</h3>
+          <div class="player-list" id="adminPlayerList">
+            <p class="text-muted">Cargando jugadores…</p>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div id="accountModal" class="modal-overlay hidden">
+    <div class="auth-modal" style="max-width:420px; box-shadow: 10px 10px 0px var(--fg);">
+      <button id="closeAccountModalBtn" class="modal-close-btn">✕</button>
+
+      <h2 class="modal-title" style="font-size:1.3rem;">Panel de Jugador</h2>
+
+      <div class="field" style="border-bottom:2px dashed var(--border); padding-bottom:1.5rem; margin-bottom:1.5rem;">
+        <label for="newUsernameInput">Cambiar Nombre de Jugador</label>
+        <div style="display:flex; gap:0.5rem; margin-top:0.3rem;">
+          <input type="text" id="newUsernameInput" class="inp" placeholder="Nuevo nick..." style="margin-bottom:0;" />
+          <button id="saveNewUsernameBtn" class="btn btn-primary" style="padding:0.5rem 1rem;">Guardar</button>
+        </div>
+        <p id="usernameChangeStatus" class="hidden" style="font-size:0.75rem; margin-top:0.5rem; font-weight:600;"></p>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:0.75rem;">
+        <button id="modalLogoutBtn" class="btn btn-ghost w-full" style="justify-content:center;">Cerrar
+          Sesión</button>
+        <button id="modalDeleteBtn" class="btn btn-ghost w-full text-rose"
+          style="justify-content:center; border-color:var(--rose); margin-top:0.5rem;">Eliminar cuenta
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="config.js"></script>
+  <script src="script.js"></script>
+</body>
+
+</html>

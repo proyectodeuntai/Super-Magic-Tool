@@ -1,32 +1,44 @@
 <!DOCTYPE html>
-<html lang="en" class="scroll-smooth">
+<html lang="es" class="scroll-smooth">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Magic toolbox</title>
-    <link rel="icon" href="assets/calvo.webp" type="image/png">
-    <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Magic Toolbox</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&amp;family=JetBrains+Mono:wght@400;600&amp;family=Space+Grotesk:wght@400;500;600;700&amp;family=Syne:wght@700;800&amp;display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
 
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex flex-col">
-    <header class="flex justify-between items-center p-6 border-b border-gray-300 dark:border-gray-700">
-        <h1 class="text-2xl font-bold">Magic toolbox</h1>
-    </header>
+<body>
 
-    <main class="flex-grow p-8">
-        <h2 class="text-xl font-semibold mb-6 text-center">Choose an app</h2>
-        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            <!-- Magic Card Matcher card -->
-            <a href="structure.html"
-                class="block p-6 rounded-2xl shadow-lg bg-white dark:bg-gray-800 hover:shadow-xl transition">
-                <h3 class="text-lg font-bold mb-2">Magic Card Matcher</h3>
-                <p class="text-sm text-gray-600 dark:text-gray-300">
-                    Sube tus cartas: prepara una lista, guarda usuarios y encuentra quién posee tus cartas.
-                </p>
-            </a>
-        </div>
-    </main>
+  <header>
+    <a class="logo" href="index.html">Magic <span>Toolbox</span></a>
+  </header>
+
+  <div class="index-hero">
+    <h1>Magic <span>Toolbox</span></h1>
+    <p>Herramientas para jugadores de Magic.</p>
+  </div>
+
+  <div class="tools-grid">
+
+    <a href="structure.html" class="tool-card" style="--card-accent: var(--primary);">
+      <span class="tool-icon">🔀</span>
+      <h3>Card Matcher</h3>
+      <p>Sube tu colección y tu wishlist. Descubre qué jugadores de tu grupo tienen las cartas que buscas para
+        intercambiar.</p>
+      <span class="tool-cta">
+        Abrir
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path d="M4 1L9 6L4 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        </svg>
+      </span>
+    </a>
+
+  </div>
 </body>
 
 </html>

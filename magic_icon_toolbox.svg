@@ -1,0 +1,22 @@
+<svg width="100%" viewBox="0 0 690 690" role="img" xmlns="http://www.w3.org/2000/svg" style="">
+  <title style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">Magic Toolbox icon</title>
+  <desc style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">Caja de herramientas con iniciales MT, blanco y negro</desc>
+
+  <rect width="680" height="680" fill="#111111" style="fill:rgb(17, 17, 17);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  
+  <rect x="110" y="300" width="460" height="290" rx="28" fill="#111111" stroke="#ffffff" stroke-width="22" style="fill:rgb(17, 17, 17);stroke:rgb(255, 255, 255);color:rgb(0, 0, 0);stroke-width:22px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  
+  <rect x="130" y="255" width="420" height="80" rx="16" fill="#111111" stroke="#ffffff" stroke-width="22" style="fill:rgb(17, 17, 17);stroke:rgb(255, 255, 255);color:rgb(0, 0, 0);stroke-width:22px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  
+  <path d="M255 255 Q255 165 340 165 Q425 165 425 255" fill="none" stroke="#ffffff" stroke-width="22" stroke-linecap="round" style="fill:none;stroke:rgb(255, 255, 255);color:rgb(0, 0, 0);stroke-width:22px;stroke-linecap:round;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  
+  <line x1="110" y1="335" x2="570" y2="335" stroke="#ffffff" stroke-width="22" style="fill:rgb(0, 0, 0);stroke:rgb(255, 255, 255);color:rgb(0, 0, 0);stroke-width:22px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  
+  <text x="340" y="490" text-anchor="middle" font-family="Georgia,'Times New Roman',serif" font-size="160" font-weight="700" fill="#ffffff" style="fill:rgb(255, 255, 255);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:Georgia, &quot;Times New Roman&quot;, serif;font-size:160px;font-weight:700;text-anchor:middle;dominant-baseline:auto">MT</text>
+
+</svg>

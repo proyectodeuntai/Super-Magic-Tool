@@ -7,7 +7,7 @@
   <title>Magic Card Matcher</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link
-    href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&amp;family=JetBrains+Mono:wght@400;600&amp;family=Space+Grotesk:wght@400;500;600;700&amp;family=Syne:wght@700;800&amp;display=swap"
+    href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;600;700&family=Syne:wght@700;800&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="icon" href="magic_icon_toolbox.svg" type="image/svg+xml">
@@ -15,9 +15,9 @@
 
 <body>
 
+  <!-- ── LOGIN ─────────────────────────────────────────────── -->
   <div id="loginScreen">
-    <a href="index.html" class="back-home-float">Volver al inicio</a>
-
+    <a href="index.html" class="back-home-float">← Volver al inicio</a>
     <div class="geo-bg">
       <div class="geo geo-1"></div>
       <div class="geo geo-2"></div>
@@ -48,6 +48,7 @@
           </svg>
           Volver al inicio de sesión
         </button>
+
         <div id="authFeedback" class="auth-feedback"></div>
 
         <form id="authForm" novalidate>
@@ -55,43 +56,35 @@
             <label for="authEmail">Correo Electrónico</label>
             <input type="email" class="inp" id="authEmail" placeholder="ejemplo@dominio.com" autocomplete="email">
           </div>
-
           <div class="field auth-view-register">
-            <label for="authUsername">Nombre de Jugador (Alias)</label>
+            <label for="authUsername">Nombre de Jugador</label>
             <input type="text" class="inp" id="authUsername" placeholder="Tu alias de juego" autocomplete="username">
           </div>
-
           <div class="field auth-hide-forgot">
             <label for="authPassword">Contraseña</label>
             <input type="password" class="inp" id="authPassword" placeholder="••••••••" autocomplete="current-password">
           </div>
-
           <div class="auth-navigation-links auth-view-login">
             <a href="#" id="linkToRegister">¿No tienes cuenta? Regístrate aquí</a>
             <a href="#" id="linkToForgot">¿Has olvidado tu contraseña?</a>
           </div>
-
           <div class="modal-actions">
-            <button type="submit" class="btn btn-gold auth-view-login" id="btnActionLogin">Entrar al Sistema</button>
-            <button type="submit" class="btn btn-primary auth-view-register" id="btnActionRegister">Registrarse e
-              Ingresar</button>
-            <button type="submit" class="btn btn-emerald auth-view-forgot" id="btnActionForgot">Enviar Enlace</button>
+            <button type="submit" class="btn btn-gold auth-view-login" id="btnActionLogin">Entrar</button>
+            <button type="submit" class="btn btn-primary auth-view-register" id="btnActionRegister">Crear
+              cuenta</button>
+            <button type="submit" class="btn btn-emerald auth-view-forgot" id="btnActionForgot">Enviar enlace</button>
           </div>
         </form>
       </div>
     </div>
   </div>
 
+  <!-- ── APP ───────────────────────────────────────────────── -->
   <div id="mainApp" class="hidden">
     <header>
-      <div class="flex items-center gap-md">
-        <a href="index.html" class="btn btn-ghost btn-sm" title="Volver al inicio">Volver</a>
-        <a class="logo" href="index.html">Magic <span>Card Matcher</span></a>
-      </div>
-
+      <a class="logo" href="index.html">Magic <span>Card Matcher</span></a>
       <div class="auth-bar">
-        <button class="auth-pill pointer" id="userMenuBtn"
-          style="border: 2px solid var(--border); background: var(--surface);">
+        <button class="auth-pill" id="userMenuBtn">
           <span class="dot"></span>
           <span id="authPillText">Sin sesión</span>
         </button>
@@ -100,80 +93,123 @@
 
     <main class="container">
       <div class="tabs-nav">
-        <button class="tab-btn active" id="tabHomeBtn">Buscar coincidencias</button>
+        <button class="tab-btn active" id="tabHomeBtn">Buscar</button>
         <button class="tab-btn" id="tabCollectionBtn">Mi Colección</button>
         <button class="tab-btn" id="tabWishlistBtn">Mi Wishlist</button>
-        <button class="tab-btn hidden" id="tabAdminBtn">Panel admin</button>
+        <button class="tab-btn hidden" id="tabAdminBtn">Admin</button>
       </div>
 
+      <!-- HOME: Matcher 3 columnas -->
       <div class="panel active" id="panelHome">
-        <h2>Intersecciones de Cartas</h2>
-        <p class="text-muted mb-4">Descubre qué jugadores tienen cartas que estás buscando.</p>
+        <h2>Cruces del Grupo</h2>
+        <p class="text-muted mb-4">Cruza tu wishlist con las colecciones del grupo y con la tuya propia.</p>
 
-        <div class="list-manager mb-4 match-selector-box">
-          <label class="text-muted text-xs font-bold uppercase mb-2 block">¿Qué wishlists quieres buscar?</label>
+        <div class="match-selector-box mb-4">
+          <p class="label-small">Wishlists a buscar:</p>
           <div id="wishlistMatchSelector" class="flex gap-2 flex-wrap">
-            <p class="text-xs text-muted">Cargando tus wishlists...</p>
+            <p class="text-xs text-muted">Cargando wishlists…</p>
           </div>
         </div>
 
-        <button class="btn btn-primary" id="refreshMatchesBtn">Buscar Coincidencias</button>
-        <div id="matchesContainer" class="grid-matches mt-2">
-          <p class="text-muted">Selecciona tus wishlists y pulsa el botón para buscar cruces en tiempo real.</p>
+        <button class="btn btn-primary mb-4" id="refreshMatchesBtn">Buscar coincidencias</button>
+
+        <div class="matcher-layout">
+          <div class="match-box">
+            <h3 class="match-box-title">Ya las tengo</h3>
+            <p class="match-box-hint">Cartas de tu wishlist que ya tienes en tu colección</p>
+            <div id="matchesIHave" class="match-list">
+              <p class="text-muted">Pulsa "Buscar coincidencias" para empezar.</p>
+            </div>
+          </div>
+          <div class="match-box">
+            <h3 class="match-box-title">Otros las tienen</h3>
+            <p class="match-box-hint">Cartas que buscas y alguien del grupo tiene</p>
+            <div id="matchesIWant" class="match-list">
+              <p class="text-muted">Pulsa "Buscar coincidencias" para empezar.</p>
+            </div>
+          </div>
+          <div class="match-box">
+            <h3 class="match-box-title">Otros las buscan</h3>
+            <p class="match-box-hint">Cartas que tienes y alguien del grupo quiere</p>
+            <div id="matchesTheyWant" class="match-list">
+              <p class="text-muted">Pulsa "Buscar coincidencias" para empezar.</p>
+            </div>
+          </div>
         </div>
       </div>
 
+      <!-- COLLECTION -->
       <div class="panel" id="panelCollection">
-        <h2>Mi Colección</h2>
-        <p class="text-muted mb-4">Cartas que tienes disponibles para intercambio.</p>
-
-        <div class="list-manager flex items-center justify-between mb-4">
-          <div class="flex items-center gap-2">
-            <select id="colListSelect" class="inp inp-sm select-auto pointer"></select>
-            <button class="btn btn-sm btn-ghost" id="colNewListBtn" title="Crear nueva lista">Crear nueva lista</button>
-            <button class="btn btn-sm btn-ghost text-rose" id="colDelListBtn" title="Eliminar lista actual">Eliminar
-              lista</button>
+        <div class="panel-header">
+          <div>
+            <h2>Mi Colección</h2>
+            <p class="text-muted">Cartas disponibles para intercambio.</p>
           </div>
-          <button class="btn btn-sm btn-ghost text-rose" id="colClearListBtn" title="Vaciar todas las cartas">Vaciar
-            lista</button>
+          <span class="sync-status" id="colSyncStatus"></span>
+        </div>
+
+        <div class="list-toolbar">
+          <div class="flex items-center gap-2">
+            <select id="colListSelect" class="inp inp-sm select-auto"></select>
+            <button class="btn btn-sm btn-ghost" id="colNewListBtn">+ Nueva lista</button>
+            <button class="btn btn-sm btn-ghost btn-danger" id="colDelListBtn">Eliminar lista</button>
+          </div>
+          <button class="btn btn-sm btn-ghost btn-danger" id="colClearListBtn">Vaciar lista</button>
         </div>
 
         <div class="imp-mode-tabs">
-          <button class="imp-tab active" data-target="col-view">Ver Lista</button>
-          <button class="imp-tab" data-target="col-text">Texto Raw</button>
-          <button class="imp-tab" data-target="col-csv">CSV</button>
-          <button class="imp-tab" data-target="col-url">URL</button>
+          <button class="imp-tab active" data-target="col-view">Ver cartas</button>
+          <button class="imp-tab" data-target="col-text">Editar texto</button>
+          <button class="imp-tab" data-target="col-csv">Subir archivo</button>
+          <!-- <button class="imp-tab" data-target="col-url">Importar URL</button> -->
         </div>
 
+        <!-- Vista lista -->
         <div class="imp-panel active" id="col-view">
-          <div class="search-wrapper mb-4">
-            <input type="text" id="colSearchInput" class="inp inp-sm w-full"
-              placeholder="🔍 Buscar carta en esta lista...">
+          <!-- Onboarding vacío -->
+          <div id="colOnboarding" class="onboarding-empty">
+            <p class="onboarding-title">Tu colección está vacía</p>
+            <p class="onboarding-hint">Añade cartas una a una aquí abajo, o usa "Editar texto", "Subir archivo".</p>
+          </div>
+
+          <div class="quick-add-row">
+            <input type="text" id="colQuickAddInput" class="inp inp-sm"
+              placeholder="Añadir carta (ej: 4 Lightning Bolt)">
+            <button class="btn btn-sm btn-gold" id="colQuickAddBtn">+ Añadir</button>
+          </div>
+
+          <div class="search-wrapper">
+            <input type="text" id="colSearchInput" class="inp inp-sm w-full" placeholder="Buscar en la lista…">
             <button id="colClearSearchBtn" class="clear-search-btn" title="Limpiar búsqueda">✕</button>
           </div>
-          <div id="colListView" class="visual-list">
-            <p class="text-muted">Cargando colección...</p>
+          <div class="list-count-row">
+            <span class="text-xs text-muted" id="colCardCount"></span>
           </div>
+          <div id="colListView" class="visual-list"></div>
         </div>
 
+        <!-- Editar texto -->
         <div class="imp-panel" id="col-text">
+          <p class="imp-hint">Una carta por línea. Formato: <code>4 Lightning Bolt</code></p>
           <textarea class="inp font-mono text-area-tall" id="collectionInput"
-            placeholder="Ejemplo:&#10;4 Lightning Bolt&#10;1 Black Lotus&#10;2 Counterspell"></textarea>
+            placeholder="4 Lightning Bolt&#10;1 Black Lotus&#10;2 Counterspell"></textarea>
         </div>
 
+        <!-- CSV -->
         <div class="imp-panel" id="col-csv">
           <div class="drop-zone" id="colDropZone">
-            <p>Arrastra tu CSV aquí o haz clic para seleccionar</p>
-            <small>Columna "name" o "Card Name" — acepta exports de MTGO y Moxfield CSV</small>
+            <p>Arrastra un archivo aquí o haz clic para seleccionar</p>
+            <small>Acepta .csv y .txt — exportaciones de MTGO y Moxfield</small>
           </div>
           <input type="file" id="colFileInput" accept=".csv,.txt" class="hidden">
           <p class="imp-status" id="colCsvStatus"></p>
         </div>
 
-        <div class="imp-panel" id="col-url">
+        <!-- URL -->
+        <!-- <div class="imp-panel" id="col-url">
           <div class="url-row">
             <div class="field field-flex-1 mb-0">
-              <label for="colUrlInput">URL de tu lista</label>
+              <label for="colUrlInput">Enlace de tu lista</label>
               <input type="url" class="inp" id="colUrlInput" placeholder="https://www.moxfield.com/decks/...">
             </div>
             <button class="btn btn-blue" id="colFetchUrlBtn">Importar</button>
@@ -183,117 +219,120 @@
             <span class="url-badge">Archidekt</span>
           </div>
           <p class="imp-status" id="colUrlStatus"></p>
-        </div>
-
-        <div class="mt-2 flex justify-between items-center header-margin">
-          <button class="btn btn-gold" id="saveCollectionBtn">Guardar Lista Actual</button>
-          <span class="text-xs text-muted" id="colCardCount"></span>
-        </div>
+        </div> -->
       </div>
 
+      <!-- WISHLIST -->
       <div class="panel" id="panelWishlist">
-        <h2>Mi Wishlist</h2>
-        <p class="text-muted mb-4">Cartas que necesitas para tus mazos.</p>
-
-        <div class="list-manager flex items-center justify-between mb-4">
-          <div class="flex items-center gap-2">
-            <select id="wlListSelect" class="inp inp-sm select-auto pointer"></select>
-            <button class="btn btn-sm btn-ghost" id="wlNewListBtn" title="Crear nueva lista">Crear nueva lista</button>
-            <button class="btn btn-sm btn-ghost text-rose" id="wlDelListBtn" title="Eliminar lista actual">Eliminar
-              lista</button>
+        <div class="panel-header">
+          <div>
+            <h2>Mi Wishlist</h2>
+            <p class="text-muted">Cartas que quieres conseguir.</p>
           </div>
-          <button class="btn btn-sm btn-ghost text-rose" id="wlClearListBtn" title="Vaciar todas las cartas">Vaciar
-            lista</button>
+          <span class="sync-status" id="wlSyncStatus"></span>
+        </div>
+
+        <div class="list-toolbar">
+          <div class="flex items-center gap-2">
+            <select id="wlListSelect" class="inp inp-sm select-auto"></select>
+            <button class="btn btn-sm btn-ghost" id="wlNewListBtn">+ Nueva lista</button>
+            <button class="btn btn-sm btn-ghost btn-danger" id="wlDelListBtn">Eliminar lista</button>
+          </div>
+          <button class="btn btn-sm btn-ghost btn-danger" id="wlClearListBtn">Vaciar lista</button>
         </div>
 
         <div class="imp-mode-tabs">
-          <button class="imp-tab active" data-target="wl-view">Ver Lista</button>
-          <button class="imp-tab" data-target="wl-text">Texto Raw</button>
-          <button class="imp-tab" data-target="wl-csv">CSV</button>
-          <button class="imp-tab" data-target="wl-url">URL</button>
+          <button class="imp-tab active" data-target="wl-view">Ver cartas</button>
+          <button class="imp-tab" data-target="wl-text">Editar texto</button>
+          <button class="imp-tab" data-target="wl-csv">Subir archivo</button>
+          <!-- <button class="imp-tab" data-target="wl-url">Importar URL</button> -->
         </div>
 
         <div class="imp-panel active" id="wl-view">
-          <div class="search-wrapper mb-4">
-            <input type="text" id="wlSearchInput" class="inp inp-sm w-full"
-              placeholder="🔍 Buscar carta en esta lista...">
+          <div id="wlOnboarding" class="onboarding-empty">
+            <p class="onboarding-title">Tu wishlist está vacía</p>
+            <p class="onboarding-hint">Añade las cartas que buscas para que el grupo pueda encontrar coincidencias
+              contigo.</p>
+          </div>
+
+          <div class="quick-add-row">
+            <input type="text" id="wlQuickAddInput" class="inp inp-sm" placeholder="Añadir carta (ej: 2 Force of Will)">
+            <button class="btn btn-sm btn-gold" id="wlQuickAddBtn">+ Añadir</button>
+          </div>
+
+          <div class="search-wrapper">
+            <input type="text" id="wlSearchInput" class="inp inp-sm w-full" placeholder="Buscar en la lista…">
             <button id="wlClearSearchBtn" class="clear-search-btn" title="Limpiar búsqueda">✕</button>
           </div>
-          <div id="wlListView" class="visual-list">
-            <p class="text-muted">Cargando wishlist...</p>
+          <div class="list-count-row">
+            <span class="text-xs text-muted" id="wlCardCount"></span>
           </div>
+          <div id="wlListView" class="visual-list"></div>
         </div>
 
         <div class="imp-panel" id="wl-text">
+          <p class="imp-hint">Una carta por línea. Formato: <code>2 Force of Will</code></p>
           <textarea class="inp font-mono text-area-tall" id="wishlistInput"
-            placeholder="Ejemplo:&#10;4 Ragavan, Nimble Pilferer&#10;2 Force of Will"></textarea>
+            placeholder="4 Ragavan, Nimble Pilferer&#10;2 Force of Will"></textarea>
         </div>
 
         <div class="imp-panel" id="wl-csv">
           <div class="drop-zone" id="wlDropZone">
-            <p>Arrastra tu CSV aquí o haz clic para seleccionar</p>
-            <small>Columna "name" o "Card Name" — acepta exports de MTGO y Moxfield CSV</small>
+            <p>Arrastra un archivo aquí o haz clic para seleccionar</p>
+            <small>Acepta .csv y .txt — exportaciones de MTGO y Moxfield</small>
           </div>
           <input type="file" id="wlFileInput" accept=".csv,.txt" class="hidden">
           <p class="imp-status" id="wlCsvStatus"></p>
         </div>
 
-        <div class="imp-panel" id="wl-url">
-          <div class="url-row">
-            <div class="field field-flex-1 mb-0">
-              <label for="wlUrlInput">URL de tu lista</label>
+        <!-- <div class="imp-panel" id="wl-url"> -->
+          <!-- <div class="url-row"> -->
+            <!-- <div class="field field-flex-1 mb-0">
+              <label for="wlUrlInput">Enlace de tu lista</label>
               <input type="url" class="inp" id="wlUrlInput" placeholder="https://www.moxfield.com/decks/...">
-            </div>
-            <button class="btn btn-blue" id="wlFetchUrlBtn">Importar</button>
-          </div>
-          <div class="url-badges">
+            </div> -->
+            <!-- <button class="btn btn-blue" id="wlFetchUrlBtn">Importar</button> -->
+          <!-- </div> -->
+          <!-- <div class="url-badges">
             <span class="url-badge">Moxfield</span>
             <span class="url-badge">Archidekt</span>
-          </div>
-          <p class="imp-status" id="wlUrlStatus"></p>
-        </div>
-
-        <div class="mt-2 flex justify-between items-center header-margin">
-          <button class="btn btn-gold" id="saveWishlistBtn">Guardar Lista Actual</button>
-          <span class="text-xs text-muted" id="wlCardCount"></span>
-        </div>
+          </div> -->
+          <!-- <p class="imp-status" id="wlUrlStatus"></p>
+        </div> -->
       </div>
 
+      <!-- ADMIN -->
       <div class="panel" id="panelAdmin">
         <h2>Admin del Grupo</h2>
         <p class="text-muted mb-4">Gestión de jugadores y permisos.</p>
-
-        <div class="admin-section">
-          <h3>Jugadores registrados</h3>
-          <div class="player-list" id="adminPlayerList">
-            <p class="text-muted">Cargando jugadores…</p>
-          </div>
+        <p class="imp-hint">Eliminar un jugador borra sus datos de Firestore. Para revocar el acceso completamente,
+          elimina también su cuenta desde Firebase Console → Authentication.</p>
+        <div class="player-list" id="adminPlayerList">
+          <p class="text-muted">Cargando jugadores…</p>
         </div>
       </div>
     </main>
   </div>
 
+  <!-- ACCOUNT MODAL -->
   <div id="accountModal" class="modal-overlay hidden">
-    <div class="auth-modal" style="max-width:420px; box-shadow: 10px 10px 0px var(--fg);">
+    <div class="account-modal-box">
       <button id="closeAccountModalBtn" class="modal-close-btn">✕</button>
+      <h2 class="modal-title">Mi cuenta</h2>
 
-      <h2 class="modal-title" style="font-size:1.3rem;">Panel de Jugador</h2>
-
-      <div class="field" style="border-bottom:2px dashed var(--border); padding-bottom:1.5rem; margin-bottom:1.5rem;">
-        <label for="newUsernameInput">Cambiar Nombre de Jugador</label>
-        <div style="display:flex; gap:0.5rem; margin-top:0.3rem;">
-          <input type="text" id="newUsernameInput" class="inp" placeholder="Nuevo nick..." style="margin-bottom:0;" />
-          <button id="saveNewUsernameBtn" class="btn btn-primary" style="padding:0.5rem 1rem;">Guardar</button>
+      <div class="account-section">
+        <label for="newUsernameInput">Cambiar nombre de jugador</label>
+        <div class="username-row">
+          <input type="text" id="newUsernameInput" class="inp" placeholder="Nuevo nombre…">
+          <button id="saveNewUsernameBtn" class="btn btn-primary btn-sm">Guardar</button>
         </div>
-        <p id="usernameChangeStatus" class="hidden" style="font-size:0.75rem; margin-top:0.5rem; font-weight:600;"></p>
+        <p id="usernameChangeStatus" class="hidden username-status"></p>
       </div>
 
-      <div style="display:flex; flex-direction:column; gap:0.75rem;">
-        <button id="modalLogoutBtn" class="btn btn-ghost w-full" style="justify-content:center;">Cerrar
-          Sesión</button>
-        <button id="modalDeleteBtn" class="btn btn-ghost w-full text-rose"
-          style="justify-content:center; border-color:var(--rose); margin-top:0.5rem;">Eliminar cuenta
-        </button>
+      <div class="account-actions">
+        <button id="modalLogoutBtn" class="btn btn-ghost w-full">Cerrar sesión</button>
+        <button id="modalDeleteBtn" class="btn btn-ghost w-full btn-danger-ghost">Eliminar cuenta
+          permanentemente</button>
       </div>
     </div>
   </div>

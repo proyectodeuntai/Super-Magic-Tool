@@ -7,6 +7,7 @@ let groupCollections = {};
 let groupWishlists = {};
 let unsubCol = null;
 let unsubWl = null;
+let groupDataReady = { col: false, wl: false };
 // ── FIREBASE GUARD ─────────────────────────────────────────
 if (typeof FIREBASE_CONFIG === 'undefined') {
   document.body.innerHTML = `
@@ -217,14 +218,16 @@ auth.onAuthStateChanged(async user => {
 
       await loadCloudData();
       unsubCol = db.collection('collections').onSnapshot(snap => {
-        let data = {};
+        const data = {};
         snap.forEach(doc => { data[doc.id] = doc.data(); });
         groupCollections = data;
+        groupDataReady.col = true;
       });
       unsubWl = db.collection('wishlists').onSnapshot(snap => {
-        let data = {};
+        const data = {};
         snap.forEach(doc => { data[doc.id] = doc.data(); });
         groupWishlists = data;
+        groupDataReady.wl = true;
       });
       toast(`Bienvenido, ${username}`);
 
@@ -239,6 +242,7 @@ auth.onAuthStateChanged(async user => {
     if (unsubWl) { unsubWl(); unsubWl = null; }
     groupCollections = {};
     groupWishlists = {};
+    groupDataReady = { col: false, wl: false };
     currentPlayer = null;
     $('authPillText').textContent = 'Sin sesión';
     $('userMenuBtn').classList.remove('active');
@@ -931,6 +935,12 @@ function runMatches() {
   }
 
   // 4. Procesar datos del GRUPO (Lectura síncrona en memoria, cuota salvada 🚀)
+  if (!groupDataReady.col || !groupDataReady.wl) {
+    if (iWantEl) iWantEl.innerHTML = '<p class="text-muted">Cargando datos del grupo… vuelve a intentarlo en un momento.</p>';
+    if (theyWantEl) theyWantEl.innerHTML = '';
+    return;
+  }
+
   const iWantGroups = [];
   const theyWantGroups = [];
 

@@ -1,0 +1,12 @@
+{
+  "name": "magic-toolbox",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Magic Card Matcher — cruces de colecciones para grupos de Magic.",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^1.6.0"
+  }
+}

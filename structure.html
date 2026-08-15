@@ -15,6 +15,12 @@
 
 <body>
 
+  <!-- ── LOADER INICIAL ───────────────────────────────────── -->
+  <div id="appLoader" class="app-loader">
+    <div class="loader-spinner"></div>
+    <p>Cargando…</p>
+  </div>
+
   <!-- ── LOGIN ─────────────────────────────────────────────── -->
   <div id="loginScreen">
     <a href="index.html" class="back-home-float">← Volver al inicio</a>
@@ -96,6 +102,7 @@
         <button class="tab-btn active" id="tabHomeBtn">Buscar</button>
         <button class="tab-btn" id="tabCollectionBtn">Mi Colección</button>
         <button class="tab-btn" id="tabWishlistBtn">Mi Wishlist</button>
+        <button class="tab-btn" id="tabGroupBtn">Grupo</button>
         <button class="tab-btn hidden" id="tabAdminBtn">Admin</button>
       </div>
 
@@ -103,6 +110,7 @@
       <div class="panel active" id="panelHome">
         <h2>Cruces del Grupo</h2>
         <p class="text-muted mb-4">Cruza tu wishlist con las colecciones del grupo y con la tuya propia.</p>
+        <p id="noGroupHint" class="text-muted mb-4" style="display:none">Aún no estás en ningún grupo: ve a la pestaña <strong>Grupo</strong> para crear uno o unirte con un código.</p>
 
         <div class="match-selector-box mb-4">
           <p class="label-small">Wishlists a buscar:</p>
@@ -180,7 +188,7 @@
 
           <div class="search-wrapper">
             <input type="text" id="colSearchInput" class="inp inp-sm w-full" placeholder="Buscar en la lista…">
-            <button id="colClearSearchBtn" class="clear-search-btn" title="Limpiar búsqueda">✕</button>
+            <button id="colClearSearchBtn" class="clear-search-btn" title="Limpiar búsqueda" aria-label="Limpiar búsqueda">✕</button>
           </div>
           <div class="list-count-row">
             <span class="text-xs text-muted" id="colCardCount"></span>
@@ -262,7 +270,7 @@
 
           <div class="search-wrapper">
             <input type="text" id="wlSearchInput" class="inp inp-sm w-full" placeholder="Buscar en la lista…">
-            <button id="wlClearSearchBtn" class="clear-search-btn" title="Limpiar búsqueda">✕</button>
+            <button id="wlClearSearchBtn" class="clear-search-btn" title="Limpiar búsqueda" aria-label="Limpiar búsqueda">✕</button>
           </div>
           <div class="list-count-row">
             <span class="text-xs text-muted" id="wlCardCount"></span>
@@ -301,6 +309,15 @@
         </div> -->
       </div>
 
+      <!-- GRUPO -->
+      <div class="panel" id="panelGroup">
+        <h2>Mi Grupo</h2>
+        <p class="text-muted mb-4">Crea un grupo con tu gente y comparte el código. Solo los miembros del mismo grupo ven los cruces de los demás.</p>
+        <div id="groupInfo">
+          <p class="text-muted">Cargando…</p>
+        </div>
+      </div>
+
       <!-- ADMIN -->
       <div class="panel" id="panelAdmin">
         <h2>Admin del Grupo</h2>
@@ -337,12 +354,13 @@
     </div>
   </div>
 
-  <div id="toast"></div>
+  <div id="toast" role="status" aria-live="polite"></div>
 
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <script src="config.js"></script>
+  <script src="card-utils.js"></script>
   <script src="script.js"></script>
 </body>
 

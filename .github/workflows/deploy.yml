@@ -13,18 +13,37 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Generar config.js desde secrets
+      # Copia solo los assets web a dist/ y genera config.js desde los
+      # secrets del repositorio (robusto ante comillas y caracteres raros).
+      - name: Preparar archivos y generar config.js
+        env:
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+          FIREBASE_AUTH_DOMAIN: ${{ secrets.FIREBASE_AUTH_DOMAIN }}
+          FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
+          FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
         run: |
-          printf 'const FIREBASE_CONFIG = {\n  apiKey: "%s",\n  authDomain: "%s",\n  databaseURL: "%s",\n  projectId: "%s",\n  storageBucket: "%s",\n  messagingSenderId: "%s",\n  appId: "%s"\n};\n' "${{ secrets.FIREBASE_API_KEY }}" "${{ secrets.FIREBASE_AUTH_DOMAIN }}" "${{ secrets.FIREBASE_DATABASE_URL }}" "${{ secrets.FIREBASE_PROJECT_ID }}" "${{ secrets.FIREBASE_STORAGE_BUCKET }}" "${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}" "${{ secrets.FIREBASE_APP_ID }}" > config.js
-          
-          # Eliminamos config.js del .gitignore temporalmente 
-          # para que la acción pueda subirlo a gh-pages
-          sed -i '/config.js/d' .gitignore
+          mkdir -p dist
+          cp index.html structure.html style.css script.js card-utils.js magic_icon_toolbox.svg dist/
+          touch dist/.nojekyll
+          node <<'EOF' > dist/config.js
+          const cfg = {
+            apiKey: process.env.FIREBASE_API_KEY || '',
+            authDomain: process.env.FIREBASE_AUTH_DOMAIN || '',
+            databaseURL: process.env.FIREBASE_DATABASE_URL || '',
+            projectId: process.env.FIREBASE_PROJECT_ID || '',
+            storageBucket: process.env.FIREBASE_STORAGE_BUCKET || '',
+            messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || '',
+            appId: process.env.FIREBASE_APP_ID || ''
+          };
+          console.log('const FIREBASE_CONFIG = ' + JSON.stringify(cfg, null, 2) + ';');
+          EOF
 
       - name: Deploy a gh-pages
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./
+          publish_dir: ./dist
           force_orphan: true
-          exclude_assets: ''

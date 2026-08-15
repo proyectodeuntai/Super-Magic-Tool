@@ -42,6 +42,8 @@ package.json      → Dev deps y scripts (npm test)
 
 La app funciona por **grupos**: cada jugador crea un grupo (se genera un código) o se une a uno existente con ese código. Las reglas de Firestore limitan las lecturas a tu grupo, así que:
 
+- Puedes invitar con un **enlace directo**: botón "Copiar enlace" en la pestaña Grupo. Quien lo abra se une con un clic (o automáticamente tras iniciar sesión).
+
 - Solo ves las colecciones, wishlists y jugadores de tu propio grupo (y a ti mismo).
 - Los administradores pueden ver y gestionar a todos los jugadores.
 - Para cambiar de grupo hay que salir del actual y unirse a otro.

@@ -12,6 +12,9 @@ let unsubGroup = null;
 let groupDataReady = { col: false, wl: false };
 let currentGroup = null;   // snapshot de groups/{groupId} (solo si estás en un grupo)
 let groupPlayers = {};     // uid -> datos de jugadores (reglas: solo tú + tu grupo)
+// Código de invitación recibido por URL (?invite=ABC123) para unirse con un clic
+const INVITE_CODE = (new URLSearchParams(window.location.search).get('invite') || '').trim() || null;
+let inviteHandled = false;
 // ── FIREBASE GUARD ─────────────────────────────────────────
 if (typeof FIREBASE_CONFIG === 'undefined') {
   document.body.innerHTML = `
@@ -223,6 +226,8 @@ auth.onAuthStateChanged(async user => {
       await loadCloudData();
       subscribeCloudData();
       subscribeGroupData();
+      // Si llegaste por un enlace de invitación, únete automáticamente al grupo
+      handleInviteLink();
       toast(`Bienvenido, ${username}`);
 
     } catch (e) {
@@ -1130,6 +1135,7 @@ function renderGroupPanel() {
       <p class="group-code">Código del grupo:
         <code id="groupCodeValue">${escapeHtml(g.joinCode)}</code>
         <button class="btn btn-sm btn-ghost" id="btnCopyGroupCode">Copiar</button>
+        <button class="btn btn-sm btn-ghost" id="btnCopyInviteLink">Copiar enlace</button>
       </p>` : ''}
       <ul class="group-members">
         ${members.length ? members.map(m => `<li>${m}</li>`).join('') : '<li class="text-muted">Cargando miembros…</li>'}
@@ -1140,6 +1146,12 @@ function renderGroupPanel() {
   $('btnCopyGroupCode')?.addEventListener('click', () => {
     const code = $('groupCodeValue')?.textContent || '';
     navigator.clipboard.writeText(code).then(() => toast('Código copiado.'))
+      .catch(() => toast('No se pudo copiar.', 'err'));
+  });
+  $('btnCopyInviteLink')?.addEventListener('click', () => {
+    const code = $('groupCodeValue')?.textContent || '';
+    const url = `${window.location.origin}${window.location.pathname}?invite=${encodeURIComponent(code)}`;
+    navigator.clipboard.writeText(url).then(() => toast('Enlace de invitación copiado.'))
       .catch(() => toast('No se pudo copiar.', 'err'));
   });
   $('btnLeaveGroup')?.addEventListener('click', handleLeaveGroup);
@@ -1175,12 +1187,10 @@ async function handleCreateGroup() {
   }
 }
 
-async function handleJoinGroup() {
-  if (!currentPlayer) return;
-  if (currentPlayer.groupId) { await bModal.alert('Ya estás en un grupo. Sal primero para unirte a otro.'); return; }
-  const raw = await bModal.prompt('Código del grupo:', 'Ej: ABC123');
-  const code = (raw || '').trim().toUpperCase();
-  if (!code) return;
+// Une al usuario actual al grupo del código. Devuelve { ok } o { ok:false, error }.
+async function joinGroupByCode(code) {
+  if (!currentPlayer) return { ok: false, error: 'NO_SESSION' };
+  if (currentPlayer.groupId) return { ok: false, error: 'ALREADY_IN_GROUP' };
   try {
     let groupId = null;
     await db.runTransaction(async t => {
@@ -1199,9 +1209,43 @@ async function handleJoinGroup() {
     subscribeCloudData();
     subscribeGroupData();
     runMatches();
+    return { ok: true };
   } catch (e) {
     console.error(e);
-    toast(e.message === 'NO_CODE' ? 'Ese código no existe.' : 'No se pudo unir al grupo.', 'err');
+    return { ok: false, error: e.message };
+  }
+}
+
+async function handleJoinGroup() {
+  if (!currentPlayer) return;
+  if (currentPlayer.groupId) { await bModal.alert('Ya estás en un grupo. Sal primero para unirte a otro.'); return; }
+  const raw = await bModal.prompt('Código del grupo:', 'Ej: ABC123');
+  const code = (raw || '').trim().toUpperCase();
+  if (!code) return;
+  const res = await joinGroupByCode(code);
+  if (!res.ok) toast(res.error === 'NO_CODE' ? 'Ese código no existe.' : 'No se pudo unir al grupo.', 'err');
+}
+
+// ── INVITACIÓN POR ENLACE (?invite=ABC123) ────────────────
+function clearInviteParam() {
+  if (window.history && window.history.replaceState) {
+    window.history.replaceState(null, '', window.location.pathname);
+  }
+}
+
+// Si llegaste con un enlace de invitación, únete automáticamente al grupo
+async function handleInviteLink() {
+  if (inviteHandled || !INVITE_CODE || !currentPlayer) return;
+  inviteHandled = true;
+  const code = INVITE_CODE.trim().toUpperCase();
+  clearInviteParam();
+  if (currentPlayer.groupId) {
+    await bModal.alert('Ya estás en un grupo. Sal de él para poder unirte a otro con un enlace.');
+    return;
+  }
+  const res = await joinGroupByCode(code);
+  if (!res.ok) {
+    await bModal.alert(res.error === 'NO_CODE' ? 'Ese enlace de invitación no es válido.' : 'No se pudo unir al grupo.');
   }
 }
 

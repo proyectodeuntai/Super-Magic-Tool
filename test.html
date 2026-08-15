@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tests — card-utils</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      background: #e6e4df;
+      color: #111111;
+      margin: 2rem;
+      max-width: 760px;
+    }
+    h1 { font-size: 1.4rem; margin-bottom: 0.25rem; }
+    #summary { font-size: 1.15rem; font-weight: 700; margin: 0.5rem 0 1.5rem; }
+    .suite {
+      font-size: 1rem;
+      margin: 1.25rem 0 0.4rem;
+      border-bottom: 2px solid #111;
+      padding-bottom: 0.2rem;
+    }
+    .case {
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 0.85rem;
+      margin: 0.3rem 0;
+    }
+    .pass { color: #00875a; }
+    .fail { color: #e03a3e; }
+    .hint { color: #555555; font-size: 0.8rem; }
+  </style>
+</head>
+
+<body>
+  <h1>Tests de card-utils</h1>
+  <p class="hint">Abre este archivo en el navegador (o sírvelo). No necesita Node ni instalar nada.</p>
+  <p id="summary">Ejecutando…</p>
+  <div id="results"></div>
+
+  <script src="card-utils.js"></script>
+  <script>
+    (function () {
+      if (typeof parseCardString !== 'function' || typeof mergeCardLists !== 'function') {
+        const s = document.getElementById('summary');
+        s.textContent = '⚠ No se pudo cargar card-utils.js. Abre este archivo directamente (doble clic) o con `npx serve .`';
+        s.style.color = '#e03a3e';
+        return;
+      }
+
+      const results = [];
+      let currentSuite = '';
+      let passed = 0;
+      let failed = 0;
+
+      function suite(name) { currentSuite = name; }
+
+      function eq(actual, expected, name) {
+        const a = JSON.stringify(actual);
+        const e = JSON.stringify(expected);
+        if (a === e) {
+          passed++;
+          results.push({ suite: currentSuite, ok: true, name });
+        } else {
+          failed++;
+          results.push({ suite: currentSuite, ok: false, name: name + ' — esperaba ' + e + ' y obtuvo ' + a });
+        }
+      }
+
+      function truthy(cond, name) {
+        if (cond) {
+          passed++;
+          results.push({ suite: currentSuite, ok: true, name });
+        } else {
+          failed++;
+          results.push({ suite: currentSuite, ok: false, name: name + ' — condición falsa' });
+        }
+      }
+
+      // ── parseCardString ──────────────────────────────────
+      suite('parseCardString');
+      eq(parseCardString('4 Lightning Bolt'), { qty: 4, name: 'Lightning Bolt' }, 'parsea cantidad y nombre');
+      eq(parseCardString('4x Lightning Bolt'), { qty: 4, name: 'Lightning Bolt' }, 'acepta el formato Nx');
+      eq(parseCardString('Lightning Bolt'), { qty: 1, name: 'Lightning Bolt' }, 'asume cantidad 1 sin número');
+      eq(parseCardString("SB: 3 Tormod's Crypt"), { qty: 3, name: "Tormod's Crypt" }, 'parsea el sideboard SB: de MTGO');
+      eq(parseCardString('  2  Counterspell  '), { qty: 2, name: 'Counterspell' }, 'ignora espacios alrededor');
+
+      // ── normalizeCardName ────────────────────────────────
+      suite('normalizeCardName');
+      truthy(normalizeCardName('Lightning Bolt') === normalizeCardName('lightning-bolt'), 'insensible a mayúsculas, espacios y puntuación');
+      truthy(normalizeCardName('Counterspell (M21)') === normalizeCardName('Counterspell'), 'ignora el set entre paréntesis');
+      truthy(normalizeCardName('Fire // Ice') === normalizeCardName('Ice // Fire'), 'empareja dobles caras en cualquier orden');
+      truthy(normalizeCardName('Fire // Ice') !== normalizeCardName('Fire'), 'no confunde nombres distintos');
+
+      // ── parseCSV ─────────────────────────────────────────
+      suite('parseCSV');
+      eq(parseCSV('\uFEFFcount,name\n2,Lightning Bolt\n'), ['2 Lightning Bolt'], 'quita el BOM de UTF-8 del header');
+      eq(parseCSV('name,qty\nLightning Bolt,4\nCounterspell,2\n'), ['4 Lightning Bolt', '2 Counterspell'], 'respeta la columna de cantidad');
+      eq(parseCSV('name,qty\n,4\nCounterspell,2\n'), ['2 Counterspell'], 'ignora filas sin nombre');
+      eq(parseCSV('name,count\nLightning Bolt,0\n'), ['1 Lightning Bolt'], 'no convierte cantidad 0 en algo distinto de 1');
+      eq(parseCSV("4 Lightning Bolt\nSB: 3 Tormod's Crypt"), ['4 Lightning Bolt', "3 Tormod's Crypt"], 'normaliza líneas sueltas sin header');
+
+      // ── mergeCardLists ───────────────────────────────────
+      suite('mergeCardLists');
+      eq(mergeCardLists(['2 Llanowar Elves'], ['1 Llanowar Elves']), ['3 Llanowar Elves'], 'suma cantidades de duplicados');
+      eq(mergeCardLists(['1 Black Lotus'], ['2 Counterspell']), ['1 Black Lotus', '2 Counterspell'], 'mantiene las no duplicadas');
+      eq(mergeCardLists(['2 Counterspell', '1 Black Lotus'], ['3 Counterspell']), ['5 Counterspell', '1 Black Lotus'], 'preserva el orden de la lista existente');
+      eq(mergeCardLists(['2x Lightning Bolt'], ['1 Lightning Bolt']), ['3 Lightning Bolt'], 'suma la misma carta en formatos distintos');
+
+      // ── computeMatches ───────────────────────────────────
+      suite('computeMatches');
+      (function () {
+        const me = 'me';
+        const bob = 'bob';
+        const base = {
+          myWishlists: { 'Mi wishlist': ['4 Lightning Bolt', '2 Counterspell'] },
+          selectedLists: ['Mi wishlist'],
+          myCollections: { 'Mi colección': ['2 Llanowar Elves', '3 Counterspell'] },
+          groupCollections: {
+            [me]: { name: 'Yo', lists: { Principal: ['2 Llanowar Elves'] } },
+            [bob]: { name: 'Bob', lists: { Principal: ['4 Lightning Bolt', '1 Fire // Ice'] } }
+          },
+          groupWishlists: {
+            [me]: { name: 'Yo', lists: { Principal: ['1 Counterspell'] } },
+            [bob]: { name: 'Bob', lists: { Principal: ['2 Llanowar Elves', '1 Ice // Fire'] } }
+          },
+          myUid: me
+        };
+        eq(computeMatches(base).hasWanted, true, 'tiene wishlist que buscar');
+        eq(computeMatches(base).owned, [{ name: 'Counterspell', want: 2, have: 3 }], 'wishlist completa en mi colección');
+        eq(computeMatches(base).partial, [], 'sin tenencias parciales');
+        eq(computeMatches(base).iWant, [{ name: 'Bob', hits: [{ name: 'Lightning Bolt', qty: 4, available: 4 }], lines: ['4x Lightning Bolt'] }], 'Bob tiene lo que busco');
+        eq(computeMatches(base).theyWant, [{ name: 'Bob', hits: [{ name: 'Llanowar Elves', want: 2, mine: 2 }] }], 'Bob busca lo que tengo');
+        eq(computeMatches(Object.assign({}, base, { myCollections: { 'Mi colección': ['2 Lightning Bolt', '3 Counterspell'] } })).partial,
+          [{ name: 'Lightning Bolt', want: 4, have: 2 }], 'detecta tenencia parcial');
+        eq(computeMatches(Object.assign({}, base, { selectedLists: [] })).hasWanted, false, 'sin wishlist → hasWanted false');
+        const dc = computeMatches(Object.assign({}, base, { myWishlists: { 'Mi wishlist': ['1 Ice // Fire'] }, selectedLists: ['Mi wishlist'], myCollections: {} }));
+        eq(dc.iWant, [{ name: 'Bob', hits: [{ name: 'Ice // Fire', qty: 1, available: 1 }], lines: ['1x Ice // Fire'] }], 'doble cara cruzada con el grupo');
+      })();
+
+      // ── Render ───────────────────────────────────────────
+      const summary = document.getElementById('summary');
+      summary.textContent = failed === 0
+        ? '✅ ' + passed + ' tests pasados, 0 fallos'
+        : '❌ ' + passed + ' pasados, ' + failed + ' fallos';
+      summary.style.color = failed === 0 ? '#00875a' : '#e03a3e';
+
+      const out = document.getElementById('results');
+      let lastSuite = '';
+      results.forEach(r => {
+        if (r.suite !== lastSuite) {
+          const h = document.createElement('h2');
+          h.className = 'suite';
+          h.textContent = r.suite;
+          out.appendChild(h);
+          lastSuite = r.suite;
+        }
+        const div = document.createElement('div');
+        div.className = 'case ' + (r.ok ? 'pass' : 'fail');
+        div.textContent = (r.ok ? '✓ ' : '✗ ') + r.name;
+        out.appendChild(div);
+      });
+    })();
+  </script>
+</body>
+
+</html>

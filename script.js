@@ -7,7 +7,14 @@ let groupCollections = {};
 let groupWishlists = {};
 let unsubCol = null;
 let unsubWl = null;
+let unsubPlayers = null;
+let unsubGroup = null;
 let groupDataReady = { col: false, wl: false };
+let currentGroup = null;   // snapshot de groups/{groupId} (solo si estás en un grupo)
+let groupPlayers = {};     // uid -> datos de jugadores (reglas: solo tú + tu grupo)
+// Código de invitación recibido por URL (?invite=ABC123) para unirse con un clic
+const INVITE_CODE = (new URLSearchParams(window.location.search).get('invite') || '').trim() || null;
+let inviteHandled = false;
 // ── FIREBASE GUARD ─────────────────────────────────────────
 if (typeof FIREBASE_CONFIG === 'undefined') {
   document.body.innerHTML = `
@@ -32,10 +39,12 @@ let activeWlList = "Mi wishlist";
 
 // Debounce timers para autoguardado
 let saveTimers = { col: null, wl: null };
+let syncStatusTimers = { col: null, wl: null };
 
 const authModal = $('authModalContainer');
 
 // ── TOAST ──────────────────────────────────────────────────
+let toastTimer = null;
 function toast(msg, type = 'success') {
   const t = $('toast');
   if (!t) return;
@@ -43,7 +52,9 @@ function toast(msg, type = 'success') {
   const shadows = { err: 'var(--primary)', inf: 'var(--accent-blue)', success: 'var(--accent-yellow)' };
   t.style.boxShadow = `6px 6px 0px ${shadows[type] || shadows.success}`;
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3000);
+  // Un toast nuevo cancela el timeout del anterior para que no lo apague antes de tiempo
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
 }
 
 function escapeHtml(str) {
@@ -52,20 +63,7 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function parseCardString(cardStr) {
-  const match = cardStr.trim().match(/^(\d+)x?\s+(.*)$/i);
-  if (match) return { qty: parseInt(match[1], 10), name: match[2].trim() };
-  return { qty: 1, name: cardStr.trim() };
-}
-
-// limpiar nombres (comas, paréntesis de sets, etc.)
-function normalizeCardName(name) {
-  return name
-    .split('//')[0]           // Coge solo la primera mitad de cartas dobles
-    .replace(/\([^)]*\)/g, '')  // Elimina todo lo que esté entre paréntesis ej: (M21)
-    .toLowerCase()
-    .replace(/[^a-z0-9]/gi, ''); // Elimina espacios, comas, apóstrofes... dejándolo todo pegado
-}
+// parseCardString y normalizeCardName viven en card-utils.js (cargado antes).
 
 // ── MODAL BAUHAUS (prompt / confirm / alert) ───────────────
 const bModal = (() => {
@@ -73,7 +71,7 @@ const bModal = (() => {
   backdrop.id = 'bModalBackdrop';
   backdrop.className = 'b-modal-backdrop';
   backdrop.innerHTML = `
-    <div class="b-modal-box">
+    <div class="b-modal-box" role="dialog" aria-modal="true" aria-labelledby="bModalMsg">
       <p id="bModalMsg" class="b-modal-msg"></p>
       <input id="bModalInput" class="inp b-modal-input" type="text" placeholder="">
       <div class="b-modal-actions">
@@ -81,7 +79,7 @@ const bModal = (() => {
         <button id="bModalOk" class="btn btn-gold btn-sm">Aceptar</button>
       </div>
     </div>`;
-  document.addEventListener('DOMContentLoaded', () => document.body.appendChild(backdrop));
+  document.body.appendChild(backdrop);
 
   const msg = () => backdrop.querySelector('#bModalMsg');
   const input = () => backdrop.querySelector('#bModalInput');
@@ -159,7 +157,7 @@ $('backFromForgot').addEventListener('click', () => setAuthState('login'));
 
 // ── APP TABS ───────────────────────────────────────────────
 function switchTab(tabName) {
-  const TABS = ['Home', 'Collection', 'Wishlist', 'Admin'];
+  const TABS = ['Home', 'Collection', 'Wishlist', 'Group', 'Admin'];
   TABS.forEach(t => {
     $(`panel${t}`)?.classList.remove('active');
     $(`tab${t}Btn`)?.classList.remove('active');
@@ -170,7 +168,7 @@ function switchTab(tabName) {
   if (tabName === 'Home') runMatches();
 }
 
-['Home', 'Collection', 'Wishlist', 'Admin'].forEach(tab => {
+['Home', 'Collection', 'Wishlist', 'Group', 'Admin'].forEach(tab => {
   const btn = $(`tab${tab}Btn`);
   if (btn) btn.addEventListener('click', () => switchTab(tab));
 });
@@ -182,7 +180,9 @@ function setSyncStatus(prefix, state) {
   if (!el) return;
   el.className = `sync-status sync-${state}`;
   el.textContent = state === 'saving' ? 'Guardando…' : state === 'saved' ? '✓ Guardado' : '';
-  if (state === 'saved') setTimeout(() => setSyncStatus(prefix, ''), 2000);
+  // Un timeout antiguo no debe borrar un estado "Guardando…" más reciente
+  clearTimeout(syncStatusTimers[prefix]);
+  if (state === 'saved') syncStatusTimers[prefix] = setTimeout(() => setSyncStatus(prefix, ''), 2000);
 }
 
 // ── AUTH STATE OBSERVER ────────────────────────────────────
@@ -201,12 +201,15 @@ auth.onAuthStateChanged(async user => {
         isAdmin = !!d.isAdmin;
       } else {
         await db.collection('players').doc(user.uid).set({
-          name: username, nameLower: username.toLowerCase(), isAdmin: false,
+          name: username, nameLower: username.toLowerCase(), isAdmin: false, groupId: null,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
       }
 
-      currentPlayer = { uid: user.uid, name: username, isAdmin };
+      currentPlayer = {
+        uid: user.uid, name: username, isAdmin,
+        groupId: doc.exists ? (doc.data().groupId || null) : null
+      };
       $('authPillText').textContent = username;
       $('userMenuBtn').classList.add('active');
 
@@ -215,20 +218,16 @@ auth.onAuthStateChanged(async user => {
 
       $('loginScreen').classList.add('hidden');
       $('mainApp').classList.remove('hidden');
+      hideLoader();
+
+      // Reclama tu nombre en la colección usernames (best-effort para cuentas antiguas)
+      ensureUsernameClaim(username.toLowerCase(), user.uid);
 
       await loadCloudData();
-      unsubCol = db.collection('collections').onSnapshot(snap => {
-        const data = {};
-        snap.forEach(doc => { data[doc.id] = doc.data(); });
-        groupCollections = data;
-        groupDataReady.col = true;
-      });
-      unsubWl = db.collection('wishlists').onSnapshot(snap => {
-        const data = {};
-        snap.forEach(doc => { data[doc.id] = doc.data(); });
-        groupWishlists = data;
-        groupDataReady.wl = true;
-      });
+      subscribeCloudData();
+      subscribeGroupData();
+      // Si llegaste por un enlace de invitación, únete automáticamente al grupo
+      handleInviteLink();
       toast(`Bienvenido, ${username}`);
 
     } catch (e) {
@@ -240,10 +239,15 @@ auth.onAuthStateChanged(async user => {
     if (user && !user.emailVerified) { await auth.signOut(); return; }
     if (unsubCol) { unsubCol(); unsubCol = null; }
     if (unsubWl) { unsubWl(); unsubWl = null; }
+    if (unsubPlayers) { unsubPlayers(); unsubPlayers = null; }
+    if (unsubGroup) { unsubGroup(); unsubGroup = null; }
     groupCollections = {};
     groupWishlists = {};
+    groupPlayers = {};
+    currentGroup = null;
     groupDataReady = { col: false, wl: false };
     currentPlayer = null;
+    hideLoader();
     $('authPillText').textContent = 'Sin sesión';
     $('userMenuBtn').classList.remove('active');
     $('tabAdminBtn')?.classList.add('hidden');
@@ -301,19 +305,32 @@ $('authForm').addEventListener('submit', async e => {
       try {
         const cred = await auth.createUserWithEmailAndPassword(email, password);
         const nameLower = username.toLowerCase();
-        const existing = await db.collection('players').where('nameLower', '==', nameLower).limit(1).get();
 
-        if (!existing.empty) {
-          await cred.user.delete();
+        try {
+          // Reclamación ATÓMICA del nombre: usernames/{nameLower} es la clave única.
+          // Si dos personas se registran a la vez con el mismo nombre, solo una
+          // consigue crear el documento y la transacción de la otra falla.
+          await db.runTransaction(async t => {
+            const uRef = db.collection('usernames').doc(nameLower);
+            const uSnap = await t.get(uRef);
+            if (uSnap.exists) throw new Error('USERNAME_TAKEN');
+            const now = firebase.firestore.FieldValue.serverTimestamp();
+            t.set(uRef, { uid: cred.user.uid, createdAt: now });
+            t.set(db.collection('players').doc(cred.user.uid), {
+              name: username, nameLower, isAdmin: false, groupId: null, createdAt: now
+            });
+          });
+        } catch (txErr) {
+          await cred.user.delete().catch(() => {});
           await auth.signOut();
           isRegistering = false;
-          return showAuthFeedback('Ese nombre de jugador ya está en uso. Elige otro.');
+          return showAuthFeedback(
+            txErr && txErr.message === 'USERNAME_TAKEN'
+              ? 'Ese nombre de jugador ya está en uso. Elige otro.'
+              : 'No se pudo crear la cuenta. Inténtalo de nuevo.'
+          );
         }
 
-        await db.collection('players').doc(cred.user.uid).set({
-          name: username, nameLower, isAdmin: false,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
         await cred.user.sendEmailVerification();
         await auth.signOut();
       } finally { isRegistering = false; }
@@ -377,16 +394,31 @@ $('saveNewUsernameBtn')?.addEventListener('click', async () => {
   status.className = 'username-status inf';
   status.textContent = 'Comprobando…';
 
+  const newLower = newName.toLowerCase();
+  const oldLower = currentPlayer.name.toLowerCase();
+
   try {
-    const existing = await db.collection('players').where('nameLower', '==', newName.toLowerCase()).limit(1).get();
-    if (!existing.empty && existing.docs[0].id !== currentPlayer.uid) {
-      status.className = 'username-status err';
-      status.textContent = 'Ese nombre ya está en uso.';
-      return;
-    }
-    await db.collection('players').doc(currentPlayer.uid).update({
-      name: newName, nameLower: newName.toLowerCase()
+    // Reclamación atómica del nuevo nombre + actualización del perfil en una transacción
+    await db.runTransaction(async t => {
+      const uRef = db.collection('usernames').doc(newLower);
+      const uSnap = await t.get(uRef);
+      if (uSnap.exists && uSnap.data().uid !== currentPlayer.uid) throw new Error('USERNAME_TAKEN');
+      if (!uSnap.exists) t.set(uRef, { uid: currentPlayer.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+      t.update(db.collection('players').doc(currentPlayer.uid), { name: newName, nameLower: newLower });
     });
+    // Libera el nombre antiguo si era tuyo (best-effort: puede no existir en cuentas antiguas)
+    if (oldLower !== newLower) {
+      db.collection('usernames').doc(oldLower).get()
+        .then(snap => { if (snap.exists && snap.data().uid === currentPlayer.uid) return snap.ref.delete(); })
+        .catch(() => {});
+    }
+    // Propaga el nuevo nombre a tus documentos de colección/wishlist
+    // para que el resto del grupo vea el cambio en los cruces sin esperar a un nuevo guardado
+    const nameUpdate = { name: newName };
+    await Promise.all([
+      db.collection('collections').doc(currentPlayer.uid).update(nameUpdate).catch(() => {}),
+      db.collection('wishlists').doc(currentPlayer.uid).update(nameUpdate).catch(() => {})
+    ]);
     currentPlayer.name = newName;
     $('authPillText').textContent = newName;
     status.className = 'username-status ok';
@@ -416,6 +448,7 @@ $('modalDeleteBtn')?.addEventListener('click', async () => {
     await db.collection('collections').doc(user.uid).delete().catch(() => { });
     await db.collection('wishlists').doc(user.uid).delete().catch(() => { });
     await db.collection('players').doc(user.uid).delete().catch(() => { });
+    await db.collection('usernames').doc(currentPlayer.name.toLowerCase()).delete().catch(() => { });
     accModal.classList.add('hidden');
     await user.delete();
     toast('Cuenta eliminada.', 'inf');
@@ -513,8 +546,16 @@ function renderOnboarding(prefix, count) {
   el.classList.toggle('hidden', count > 0);
 }
 
-$('colListSelect').addEventListener('change', e => { activeColList = e.target.value; updateListUI('col'); });
-$('wlListSelect').addEventListener('change', e => { activeWlList = e.target.value; updateListUI('wl'); });
+function switchToList(prefix, name) {
+  if (prefix === 'col') activeColList = name; else activeWlList = name;
+  // El filtro de búsqueda de la lista anterior no debe quedar aplicado a la nueva
+  const inp = $(`${prefix}SearchInput`);
+  if (inp) inp.value = '';
+  updateListUI(prefix);
+}
+
+$('colListSelect').addEventListener('change', e => switchToList('col', e.target.value));
+$('wlListSelect').addEventListener('change', e => switchToList('wl', e.target.value));
 
 // ── LIST MANAGEMENT ────────────────────────────────────────
 async function handleNewList(prefix) {
@@ -523,8 +564,7 @@ async function handleNewList(prefix) {
   const dict = prefix === 'col' ? myCollections : myWishlists;
   if (dict[name]) { await bModal.alert('Ya existe una lista con ese nombre.'); return; }
   dict[name] = [];
-  if (prefix === 'col') activeColList = name; else activeWlList = name;
-  updateListUI(prefix);
+  switchToList(prefix, name);
   saveFullDictToCloud(prefix);
   if (prefix === 'wl') renderWishlistMatchSelector();
 }
@@ -536,9 +576,7 @@ async function handleDeleteList(prefix) {
   const ok = await bModal.confirm(`¿Eliminar "${active}" y todas sus cartas? No se puede deshacer.`);
   if (!ok) return;
   delete dict[active];
-  if (prefix === 'col') activeColList = Object.keys(dict)[0];
-  else activeWlList = Object.keys(dict)[0];
-  updateListUI(prefix);
+  switchToList(prefix, Object.keys(dict)[0]);
   saveFullDictToCloud(prefix);
   if (prefix === 'wl') renderWishlistMatchSelector();
   toast('Lista eliminada.');
@@ -574,8 +612,9 @@ function setupQuickAdd(prefix) {
     if (!raw) return;
     const dict = prefix === 'col' ? myCollections : myWishlists;
     const active = prefix === 'col' ? activeColList : activeWlList;
-    // Acepta "4 Lightning Bolt" o simplemente "Lightning Bolt" (asume 1x)
-    const entry = /^\d+\s/.test(raw) ? raw : `1 ${raw}`;
+    // Acepta "4 Lightning Bolt", "4x Lightning Bolt", "SB: 3 …" o solo "Lightning Bolt" (asume 1x)
+    const { qty, name } = parseCardString(raw);
+    const entry = `${qty} ${name}`;
     dict[active].push(entry);
     input.value = '';
     updateListUI(prefix);
@@ -613,8 +652,8 @@ function setupTextareaAutosave(prefix) {
 setupTextareaAutosave('col');
 setupTextareaAutosave('wl');
 
-// ── VISUAL LIST — paginada (50 por página) ───────────────
-const PAGE_SIZE = 50;
+// ── VISUAL LIST — paginada ───────────────
+const PAGE_SIZE = 15;
 const listPage = { col: 0, wl: 0 };
 
 function renderVisualList(prefix, filterText = '', keepPage = false) {
@@ -744,7 +783,8 @@ document.querySelectorAll('.imp-mode-tabs').forEach(tabGroup => {
 // ── MERGE CARDS (tras importación) ────────────────────────
 function mergeAndSave(textareaId, newCards) {
   const existing = $(textareaId).value.split('\n').map(l => l.trim()).filter(l => l);
-  const merged = [...new Set([...existing, ...newCards])];
+  // Suma cantidades de cartas duplicadas en vez de duplicar la línea
+  const merged = mergeCardLists(existing, newCards);
   $(textareaId).value = merged.join('\n');
 
   const prefix = textareaId.includes('collection') ? 'col' : 'wl';
@@ -803,30 +843,7 @@ function mergeAndSave(textareaId, newCards) {
 // });
 
 // ── CSV IMPORT ─────────────────────────────────────────────
-function parseCSV(text) {
-  const lines = text.split(/\r?\n/).filter(l => l.trim());
-  if (!lines.length) return [];
-  const header = lines[0].toLowerCase();
-  if (header.includes('name')) {
-    const cols = lines[0].split(',').map(c => c.trim().toLowerCase());
-    const nameIdx = cols.findIndex(c => ['name', 'card name', 'cardname'].includes(c));
-    const qtyIdx = cols.findIndex(c => ['count', 'qty', 'quantity', 'amount'].includes(c));
-    return lines.slice(1).flatMap(line => {
-      let cur = '', inQ = false, parts = [];
-      for (const ch of line) {
-        if (ch === '"') { inQ = !inQ; continue; }
-        if (ch === ',' && !inQ) { parts.push(cur); cur = ''; continue; }
-        cur += ch;
-      }
-      parts.push(cur);
-      const name = parts[nameIdx]?.trim();
-      if (!name) return [];
-      const qty = qtyIdx >= 0 ? parseInt(parts[qtyIdx]) || 1 : 1;
-      return [`${qty} ${name}`];
-    });
-  }
-  return lines.map(l => l.trim()).filter(Boolean);
-}
+// parseCSV vive en card-utils.js (cargado antes).
 
 function setupCSVDrop(dropZoneId, fileInputId, statusId, textareaId) {
   const zone = $(dropZoneId);
@@ -895,116 +912,60 @@ function runMatches() {
 
   [iWantEl, theyWantEl, iHaveEl].forEach(el => { if (el) el.innerHTML = '<p class="text-muted">Buscando…</p>'; });
 
-  // 1. Mapa de lo que YO busco
-  const selectedWl = Array.from(document.querySelectorAll('.wl-match-cb:checked')).map(cb => cb.value);
-  const searchMap = new Map();
-  selectedWl.forEach(wlName => {
-    (myWishlists[wlName] || []).forEach(cardStr => {
-      const { name, qty } = parseCardString(cardStr);
-      const key = normalizeCardName(name); // NORMALIZACIÓN FUERTE
-      if (!searchMap.has(key)) searchMap.set(key, { name, qty });
-      else searchMap.get(key).qty = Math.max(searchMap.get(key).qty, qty);
-    });
-  });
+  // Aviso si aún no estás en ningún grupo
+  const noGroupHint = $('noGroupHint');
+  if (noGroupHint) noGroupHint.style.display = currentPlayer.groupId ? 'none' : 'block';
 
-  // 2. Mapa de lo que YO tengo
-  const myCards = new Map();
-  Object.values(myCollections).flat().forEach(cardStr => {
-    const { name, qty } = parseCardString(cardStr);
-    const key = normalizeCardName(name); // NORMALIZACIÓN FUERTE
-    if (!myCards.has(key)) myCards.set(key, { name, qty });
-    else myCards.get(key).qty += qty;
+  // Cálculo puro de cruces (definido en card-utils.js, cubierto por tests)
+  const selectedWl = Array.from(document.querySelectorAll('.wl-match-cb:checked')).map(cb => cb.value);
+  const { owned, partial, iWant, theyWant, hasWanted } = computeMatches({
+    myWishlists,
+    selectedLists: selectedWl,
+    myCollections,
+    groupCollections,
+    groupWishlists,
+    myUid: currentPlayer.uid
   });
 
   // 3. Cartas de mi wishlist que YA tengo
   if (iHaveEl) {
-    if (searchMap.size === 0) {
+    if (!hasWanted) {
       iHaveEl.innerHTML = '<p class="text-muted">Añade cartas a tu wishlist primero.</p>';
     } else {
-      const owned = [];
-      for (const [wKey, wCard] of searchMap.entries()) {
-        const mine = myCards.get(wKey);
-        if (mine) owned.push({ name: wCard.name, want: wCard.qty, have: mine.qty });
-      }
-      iHaveEl.innerHTML = owned.length
-        ? renderCollapsibleGroup('Tu colección', owned.map(o =>
+      const sections = [];
+      if (owned.length) {
+        sections.push(renderCollapsibleGroup('Tu colección', owned.map(o =>
           `<li><span class="qty-badge qty-mine">${o.have}</span><strong>${escapeHtml(o.name)}</strong><span class="match-meta">buscas ${o.want}</span></li>`
-        ).join(''), owned.length)
+        ).join(''), owned.length));
+      }
+      if (partial.length) {
+        sections.push(renderCollapsibleGroup('Parcial — te faltan cartas', partial.map(o =>
+          `<li><span class="qty-badge qty-partial">${o.have}/${o.want}</span><strong>${escapeHtml(o.name)}</strong><span class="match-meta">te faltan ${Math.max(0, o.want - o.have)}</span></li>`
+        ).join(''), partial.length));
+      }
+      iHaveEl.innerHTML = sections.length
+        ? sections.join('')
         : '<p class="text-muted">No tienes ninguna de tus cartas buscadas en tu colección.</p>';
     }
   }
 
-  // 4. Procesar datos del GRUPO (Lectura síncrona en memoria, cuota salvada 🚀)
+  // 4. Procesar datos del GRUPO (cálculo puro + renderizado)
   if (!groupDataReady.col || !groupDataReady.wl) {
     if (iWantEl) iWantEl.innerHTML = '<p class="text-muted">Cargando datos del grupo… vuelve a intentarlo en un momento.</p>';
     if (theyWantEl) theyWantEl.innerHTML = '';
     return;
   }
 
-  const iWantGroups = [];
-  const theyWantGroups = [];
-
-  for (const uid in groupCollections) {
-    if (uid === currentPlayer.uid) continue;
-    const data = groupCollections[uid];
-    const remoteLists = data.lists || (data.cards ? { Principal: data.cards } : {});
-
-    // Lo que YO quiero y ELLOS tienen
-    if (searchMap.size > 0) {
-      const hitsMap = new Map();
-      Object.values(remoteLists).flat().forEach(pcStr => {
-        const pc = parseCardString(pcStr);
-        const pcKey = normalizeCardName(pc.name);
-
-        if (searchMap.has(pcKey)) {
-          const searchObj = searchMap.get(pcKey);
-          if (!hitsMap.has(pcKey)) hitsMap.set(pcKey, { ...searchObj, available: pc.qty });
-          else hitsMap.get(pcKey).available += pc.qty; // Sumar duplicados de sus propias listas
-        }
-      });
-
-      if (hitsMap.size > 0) {
-        const hitsHtml = Array.from(hitsMap.values()).map(h =>
-          `<li><span class="qty-badge qty-available">${h.available}</span><strong>${escapeHtml(h.name)}</strong><span class="match-meta">buscas ${h.qty}</span></li>`
-        );
-        iWantGroups.push({ name: data.name, hits: hitsHtml });
-      }
-    }
-
-    // Lo que ELLOS quieren y YO tengo
-    if (myCards.size > 0) {
-      const theirWlData = groupWishlists[uid];
-      if (theirWlData) {
-        const theirLists = theirWlData.lists || (theirWlData.cards ? { Principal: theirWlData.cards } : {});
-        const hitsMap = new Map();
-
-        Object.values(theirLists).flat().forEach(wlStr => {
-          const wc = parseCardString(wlStr);
-          const wcKey = normalizeCardName(wc.name);
-
-          if (myCards.has(wcKey)) {
-            const myCard = myCards.get(wcKey);
-            if (!hitsMap.has(wcKey)) hitsMap.set(wcKey, { name: wc.name, want: wc.qty, mine: myCard.qty });
-            else hitsMap.get(wcKey).want = Math.max(hitsMap.get(wcKey).want, wc.qty);
-          }
-        });
-
-        if (hitsMap.size > 0) {
-          const hitsHtml = Array.from(hitsMap.values()).map(h =>
-            `<li><span class="qty-badge qty-mine">${h.mine}</span><strong>${escapeHtml(h.name)}</strong><span class="match-meta">ellos buscan ${h.want}</span></li>`
-          );
-          theyWantGroups.push({ name: data.name, hits: hitsHtml });
-        }
-      }
-    }
-  }
-
-  iWantEl.innerHTML = iWantGroups.length
-    ? iWantGroups.map(g => renderCollapsibleGroup(g.name, g.hits.join(''), g.hits.length)).join('')
+  iWantEl.innerHTML = iWant.length
+    ? iWant.map(g => renderCollapsibleGroup(g.name, g.hits.map(h =>
+      `<li><span class="qty-badge qty-available">${h.available}</span><strong>${escapeHtml(h.name)}</strong><span class="match-meta">buscas ${h.qty}</span></li>`
+    ).join(''), g.hits.length, g.lines)).join('')
     : '<p class="text-muted">Nadie del grupo tiene lo que buscas.</p>';
 
-  if (theyWantEl) theyWantEl.innerHTML = theyWantGroups.length
-    ? theyWantGroups.map(g => renderCollapsibleGroup(g.name, g.hits.join(''), g.hits.length)).join('')
+  if (theyWantEl) theyWantEl.innerHTML = theyWant.length
+    ? theyWant.map(g => renderCollapsibleGroup(g.name, g.hits.map(h =>
+      `<li><span class="qty-badge qty-mine">${h.mine}</span><strong>${escapeHtml(h.name)}</strong><span class="match-meta">ellos buscan ${h.want}</span></li>`
+    ).join(''), g.hits.length)).join('')
     : '<p class="text-muted">Nadie del grupo busca lo que tienes.</p>';
 
   // Activar colapsables
@@ -1015,22 +976,295 @@ function runMatches() {
       btn.querySelector('.collapse-arrow').textContent = open ? '▸' : '▾';
     });
   });
+
+  // Botón copiar mensaje WhatsApp
+  document.querySelectorAll('.btn-copy-msg').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const playerName = btn.dataset.player;
+      const cardLines = JSON.parse(btn.dataset.cards);
+      const msg = buildWhatsAppMessage(playerName, cardLines);
+      navigator.clipboard.writeText(msg).then(() => {
+        toast('Mensaje copiado al portapapeles');
+      }).catch(() => {
+        // Fallback para navegadores sin clipboard API
+        const ta = document.createElement('textarea');
+        ta.value = msg;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        toast('Mensaje copiado al portapapeles');
+      });
+    });
+  });
 }
 
-function renderCollapsibleGroup(playerName, itemsHtml, count) {
+function renderCollapsibleGroup(playerName, itemsHtml, count, cardLines = []) {
+  const groupId = 'cg-' + Math.random().toString(36).slice(2, 8);
   return `
-    <div class="match-card">
+    <div class="match-card" id="${groupId}">
       <button class="collapsible-toggle">
-        <span class="collapse-arrow">▾</span>
+        <span class="collapse-arrow">▸</span> <!-- CAMBIO 1: Flecha hacia la derecha -->
         <span class="collapse-name">${escapeHtml(playerName)}</span>
         <span class="collapse-count">${count} carta${count !== 1 ? 's' : ''}</span>
       </button>
-      <div class="collapsible-body">
+      <div class="collapsible-body collapsed"> <!-- CAMBIO 2: Añadida la clase 'collapsed' -->
         <ul class="match-item-list">${itemsHtml}</ul>
+        ${cardLines.length ? `<button class="btn-copy-msg btn btn-sm btn-ghost" data-player="${escapeHtml(playerName)}" data-cards="${escapeHtml(JSON.stringify(cardLines))}">Copiar mensaje</button>` : ''}
       </div>
     </div>`;
 }
+
+function buildWhatsAppMessage(playerName, cardLines) {
+  const list = cardLines.map(c => `  - ${c}`).join('\n');
+  return `Hola ${playerName}, me interesan estas cartas de tu colección:\n${list}\n¡Gracias!`;
+}
 $('refreshMatchesBtn')?.addEventListener('click', runMatches);
+
+// ── GRUPO (crear / unirse / salir) ─────────────────────────
+function generateGroupCode(len = 6) {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sin 0/O/1/I para evitar confusiones
+  let code = '';
+  for (let i = 0; i < len; i++) code += alphabet[Math.floor(Math.random() * alphabet.length)];
+  return code;
+}
+
+function hideLoader() {
+  const loader = $('appLoader');
+  if (loader) loader.classList.add('hidden');
+}
+
+// Reclama tu nombre en la colección usernames si aún no existe (cuentas antiguas)
+async function ensureUsernameClaim(nameLower, uid) {
+  try {
+    const ref = db.collection('usernames').doc(nameLower);
+    const snap = await ref.get();
+    if (!snap.exists) await ref.set({ uid, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+  } catch (e) { console.warn('ensureUsernameClaim:', e); }
+}
+
+// Suscribe colecciones + wishlists. Las reglas de Firestore filtran a tu grupo,
+// así que aquí solo llegan tus documentos y los de tu gente.
+function subscribeCloudData() {
+  if (unsubCol) { unsubCol(); unsubCol = null; }
+  if (unsubWl) { unsubWl(); unsubWl = null; }
+  groupDataReady = { col: false, wl: false };
+
+  unsubCol = db.collection('collections').onSnapshot(snap => {
+    const data = {};
+    snap.forEach(doc => { data[doc.id] = doc.data(); });
+    groupCollections = data;
+    groupDataReady.col = true;
+    if (groupDataReady.col && groupDataReady.wl) runMatches();
+  }, err => {
+    console.error('Snapshot collections:', err);
+    groupDataReady.col = true;
+    if (groupDataReady.col && groupDataReady.wl) runMatches();
+    toast('Error al sincronizar las colecciones del grupo.', 'err');
+  });
+
+  unsubWl = db.collection('wishlists').onSnapshot(snap => {
+    const data = {};
+    snap.forEach(doc => { data[doc.id] = doc.data(); });
+    groupWishlists = data;
+    groupDataReady.wl = true;
+    if (groupDataReady.col && groupDataReady.wl) runMatches();
+  }, err => {
+    console.error('Snapshot wishlists:', err);
+    groupDataReady.wl = true;
+    if (groupDataReady.col && groupDataReady.wl) runMatches();
+    toast('Error al sincronizar las wishlists del grupo.', 'err');
+  });
+}
+
+// Escucha a los jugadores (solo tú + tu grupo, según reglas) y al documento del grupo
+function subscribeGroupData() {
+  if (unsubPlayers) { unsubPlayers(); unsubPlayers = null; }
+  if (unsubGroup) { unsubGroup(); unsubGroup = null; }
+  groupPlayers = {};
+
+  unsubPlayers = db.collection('players').onSnapshot(snap => {
+    const data = {};
+    snap.forEach(doc => { data[doc.id] = doc.data(); });
+    groupPlayers = data;
+    renderGroupPanel();
+  }, err => console.error('Snapshot players:', err));
+
+  if (currentPlayer?.groupId) {
+    unsubGroup = db.collection('groups').doc(currentPlayer.groupId).onSnapshot(snap => {
+      currentGroup = snap.exists ? snap.data() : null;
+      renderGroupPanel();
+    }, err => console.error('Snapshot group:', err));
+  } else {
+    currentGroup = null;
+  }
+  renderGroupPanel();
+}
+
+function renderGroupPanel() {
+  const panel = $('groupInfo');
+  if (!panel) return;
+  const gid = currentPlayer?.groupId;
+
+  if (!gid) {
+    panel.innerHTML = `
+      <p class="text-muted mb-4">Aún no estás en ningún grupo. Crea uno y comparte el código, o únete con el código de un amigo.</p>
+      <div class="group-actions">
+        <button class="btn btn-sm btn-gold" id="btnCreateGroup">+ Crear grupo</button>
+        <button class="btn btn-sm btn-blue" id="btnJoinGroup">Unirme con código</button>
+      </div>`;
+    $('btnCreateGroup')?.addEventListener('click', handleCreateGroup);
+    $('btnJoinGroup')?.addEventListener('click', handleJoinGroup);
+    return;
+  }
+
+  const members = Object.values(groupPlayers)
+    .filter(p => p.groupId === gid)
+    .map(p => escapeHtml(p.name));
+  const g = currentGroup;
+
+  panel.innerHTML = `
+    <div class="group-card">
+      <div class="group-card-head">
+        <strong>${g && g.name ? escapeHtml(g.name) : 'Tu grupo'}</strong>
+        <span class="text-xs text-muted">${members.length} miembro${members.length !== 1 ? 's' : ''}</span>
+      </div>
+      ${g && g.joinCode ? `
+      <p class="group-code">Código del grupo:
+        <code id="groupCodeValue">${escapeHtml(g.joinCode)}</code>
+        <button class="btn btn-sm btn-ghost" id="btnCopyGroupCode">Copiar</button>
+        <button class="btn btn-sm btn-ghost" id="btnCopyInviteLink">Copiar enlace</button>
+      </p>` : ''}
+      <ul class="group-members">
+        ${members.length ? members.map(m => `<li>${m}</li>`).join('') : '<li class="text-muted">Cargando miembros…</li>'}
+      </ul>
+      <button class="btn btn-sm btn-ghost btn-danger" id="btnLeaveGroup">Salir del grupo</button>
+    </div>`;
+
+  $('btnCopyGroupCode')?.addEventListener('click', () => {
+    const code = $('groupCodeValue')?.textContent || '';
+    navigator.clipboard.writeText(code).then(() => toast('Código copiado.'))
+      .catch(() => toast('No se pudo copiar.', 'err'));
+  });
+  $('btnCopyInviteLink')?.addEventListener('click', () => {
+    const code = $('groupCodeValue')?.textContent || '';
+    const url = `${window.location.origin}${window.location.pathname}?invite=${encodeURIComponent(code)}`;
+    navigator.clipboard.writeText(url).then(() => toast('Enlace de invitación copiado.'))
+      .catch(() => toast('No se pudo copiar.', 'err'));
+  });
+  $('btnLeaveGroup')?.addEventListener('click', handleLeaveGroup);
+}
+
+async function handleCreateGroup() {
+  if (!currentPlayer) return;
+  if (currentPlayer.groupId) { await bModal.alert('Ya estás en un grupo. Sal primero para crear otro.'); return; }
+  const name = await bModal.prompt('Nombre del grupo:', 'Ej: Mi playgroup');
+  if (!name) return;
+  const code = generateGroupCode();
+  try {
+    const groupId = db.collection('groups').doc().id;
+    await db.runTransaction(async t => {
+      const now = firebase.firestore.FieldValue.serverTimestamp();
+      t.set(db.collection('groups').doc(groupId), {
+        name, ownerUid: currentPlayer.uid, memberUids: [currentPlayer.uid],
+        joinCode: code, createdAt: now, updatedAt: now
+      });
+      t.set(db.collection('invites').doc(code), {
+        groupId, createdBy: currentPlayer.uid, createdAt: now
+      });
+      t.update(db.collection('players').doc(currentPlayer.uid), { groupId });
+    });
+    currentPlayer.groupId = groupId;
+    toast('Grupo creado. Comparte el código con tus amigos.');
+    subscribeCloudData();
+    subscribeGroupData();
+    runMatches();
+  } catch (e) {
+    console.error(e);
+    toast('No se pudo crear el grupo.', 'err');
+  }
+}
+
+// Une al usuario actual al grupo del código. Devuelve { ok } o { ok:false, error }.
+async function joinGroupByCode(code) {
+  if (!currentPlayer) return { ok: false, error: 'NO_SESSION' };
+  if (currentPlayer.groupId) return { ok: false, error: 'ALREADY_IN_GROUP' };
+  try {
+    let groupId = null;
+    await db.runTransaction(async t => {
+      const inv = await t.get(db.collection('invites').doc(code));
+      if (!inv.exists) throw new Error('NO_CODE');
+      groupId = inv.data().groupId;
+      const gRef = db.collection('groups').doc(groupId);
+      // Ojo: NO se puede leer el grupo antes de unirte (las reglas de Firestore
+      // solo permiten leer grupos a sus miembros). El update de abajo fallará
+      // solo si el grupo no existe, así que no hace falta leerlo.
+      t.update(db.collection('players').doc(currentPlayer.uid), { groupId });
+      t.update(gRef, { memberUids: firebase.firestore.FieldValue.arrayUnion(currentPlayer.uid) });
+    });
+    currentPlayer.groupId = groupId;
+    toast('¡Te has unido al grupo!', 'inf');
+    subscribeCloudData();
+    subscribeGroupData();
+    runMatches();
+    return { ok: true };
+  } catch (e) {
+    console.error(e);
+    return { ok: false, error: e.message };
+  }
+}
+
+async function handleJoinGroup() {
+  if (!currentPlayer) return;
+  if (currentPlayer.groupId) { await bModal.alert('Ya estás en un grupo. Sal primero para unirte a otro.'); return; }
+  const raw = await bModal.prompt('Código del grupo:', 'Ej: ABC123');
+  const code = (raw || '').trim().toUpperCase();
+  if (!code) return;
+  const res = await joinGroupByCode(code);
+  if (!res.ok) toast(res.error === 'NO_CODE' ? 'Ese código no existe.' : 'No se pudo unir al grupo.', 'err');
+}
+
+// ── INVITACIÓN POR ENLACE (?invite=ABC123) ────────────────
+function clearInviteParam() {
+  if (window.history && window.history.replaceState) {
+    window.history.replaceState(null, '', window.location.pathname);
+  }
+}
+
+// Si llegaste con un enlace de invitación, únete automáticamente al grupo
+async function handleInviteLink() {
+  if (inviteHandled || !INVITE_CODE || !currentPlayer) return;
+  inviteHandled = true;
+  const code = INVITE_CODE.trim().toUpperCase();
+  clearInviteParam();
+  if (currentPlayer.groupId) {
+    await bModal.alert('Ya estás en un grupo. Sal de él para poder unirte a otro con un enlace.');
+    return;
+  }
+  const res = await joinGroupByCode(code);
+  if (!res.ok) {
+    await bModal.alert(res.error === 'NO_CODE' ? 'Ese enlace de invitación no es válido.' : 'No se pudo unir al grupo.');
+  }
+}
+
+async function handleLeaveGroup() {
+  if (!currentPlayer?.groupId) return;
+  const ok = await bModal.confirm('¿Salir del grupo? Dejarás de ver los cruces de sus miembros.');
+  if (!ok) return;
+  try {
+    await db.collection('players').doc(currentPlayer.uid).update({ groupId: null });
+    currentPlayer.groupId = null;
+    toast('Has salido del grupo.', 'inf');
+    subscribeCloudData();
+    subscribeGroupData();
+    runMatches();
+  } catch (e) {
+    console.error(e);
+    toast('No se pudo salir del grupo.', 'err');
+  }
+}
 
 // ── ADMIN PANEL ────────────────────────────────────────────
 async function loadAdminPanel() {

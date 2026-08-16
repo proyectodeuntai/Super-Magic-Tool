@@ -99,7 +99,7 @@
 
     <main class="container">
       <div class="tabs-nav">
-        <button class="tab-btn active" id="tabHomeBtn">Buscar</button>
+        <button class="tab-btn active" id="tabHomeBtn">Coincidencias</button>
         <button class="tab-btn" id="tabCollectionBtn">Mi Colección</button>
         <button class="tab-btn" id="tabWishlistBtn">Mi Wishlist</button>
         <button class="tab-btn" id="tabGroupBtn">Grupo</button>
@@ -108,11 +108,18 @@
 
       <!-- HOME: Matcher 3 columnas -->
       <div class="panel active" id="panelHome">
-        <h2>Cruces del Grupo</h2>
-        <p class="text-muted mb-4">Cruza tu wishlist con las colecciones del grupo y con la tuya propia.</p>
-        <p id="noGroupHint" class="text-muted mb-4" style="display:none">Aún no estás en ningún grupo: ve a la pestaña <strong>Grupo</strong> para crear uno o unirte con un código.</p>
+        <h2>Coincidencias</h2>
+        <p class="text-muted mb-4">Qué cartas puedes intercambiar con tu grupo.</p>
+        <div id="noGroupHint" class="onboarding-empty" style="display:none">
+          <p class="onboarding-title">Aún no estás en un grupo</p>
+          <p class="onboarding-hint">Para ver los cruces con tus amigos, crea un grupo o únete al de un amigo.</p>
+          <div class="flex gap-2" style="justify-content:center; margin-top:1rem;">
+            <button class="btn btn-gold" id="hintCreateGroupBtn">+ Crear grupo</button>
+            <button class="btn btn-blue" id="hintJoinGroupBtn">Unirme con código</button>
+          </div>
+        </div>
 
-        <div class="match-selector-box mb-4">
+        <div class="match-selector-box mb-4" id="wishlistMatchSelectorBox">
           <p class="label-small">Wishlists a buscar:</p>
           <div id="wishlistMatchSelector" class="flex gap-2 flex-wrap">
             <p class="text-xs text-muted">Cargando wishlists…</p>

@@ -884,13 +884,21 @@ setupCSVDrop('wlDropZone', 'wlFileInput', 'wlCsvStatus', 'wishlistInput');
 // ── WISHLIST MATCH SELECTOR ────────────────────────────────
 function renderWishlistMatchSelector() {
   const container = $('wishlistMatchSelector');
-  if (!container) return;
+  const box = $('wishlistMatchSelectorBox');
+  if (!container || !box) return;
   container.innerHTML = '';
   const keys = Object.keys(myWishlists);
   if (!keys.length) {
-    container.innerHTML = '<p class="text-xs text-muted">No tienes wishlists todavía.</p>';
+    box.style.display = 'block';
+    container.innerHTML = '<p class="text-xs text-muted">Todavía no tienes wishlists. Añade cartas en la pestaña «Mi Wishlist».</p>';
     return;
   }
+  // Con una sola wishlist no hay nada que elegir: ocultamos el selector.
+  if (keys.length === 1) {
+    box.style.display = 'none';
+    return;
+  }
+  box.style.display = 'block';
   keys.forEach(listName => {
     const lbl = document.createElement('label');
     lbl.className = 'wl-checkbox-label';
@@ -918,9 +926,10 @@ function runMatches() {
 
   // Cálculo puro de cruces (definido en card-utils.js, cubierto por tests)
   const selectedWl = Array.from(document.querySelectorAll('.wl-match-cb:checked')).map(cb => cb.value);
+  const effectiveSelected = selectedWl.length ? selectedWl : Object.keys(myWishlists);
   const { owned, partial, iWant, theyWant, hasWanted } = computeMatches({
     myWishlists,
-    selectedLists: selectedWl,
+    selectedLists: effectiveSelected,
     myCollections,
     groupCollections,
     groupWishlists,
@@ -1022,6 +1031,8 @@ function buildWhatsAppMessage(playerName, cardLines) {
   return `Hola ${playerName}, me interesan estas cartas de tu colección:\n${list}\n¡Gracias!`;
 }
 $('refreshMatchesBtn')?.addEventListener('click', runMatches);
+$('hintCreateGroupBtn')?.addEventListener('click', handleCreateGroup);
+$('hintJoinGroupBtn')?.addEventListener('click', handleJoinGroup);
 
 // ── GRUPO (crear / unirse / salir) ─────────────────────────
 function generateGroupCode(len = 6) {

@@ -2,7 +2,7 @@
 // Tests unitarios de card-utils.js — ejecutar con `npm test`
 // ═══════════════════════════════════════════════════════════
 import { describe, it, expect } from 'vitest';
-import cardUtils from './card-utils.js';
+import cardUtils from '../js/card-utils.js';
 
 const { parseCardString, normalizeCardName, parseCSV, mergeCardLists } = cardUtils;
 

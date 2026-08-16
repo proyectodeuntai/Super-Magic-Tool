@@ -25,8 +25,11 @@ jobs:
           FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}
           FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
         run: |
-          mkdir -p dist
-          cp index.html structure.html style.css script.js card-utils.js magic_icon_toolbox.svg dist/
+          mkdir -p dist/css dist/js dist/assets
+          cp index.html structure.html dist/
+          cp css/style.css dist/css/
+          cp js/script.js js/card-utils.js dist/js/
+          cp assets/magic_icon_toolbox.svg dist/assets/
           touch dist/.nojekyll
           node <<'EOF' > dist/config.js
           const cfg = {

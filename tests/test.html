@@ -116,11 +116,11 @@
           myWishlists: { 'Mi wishlist': ['4 Lightning Bolt', '2 Counterspell'] },
           selectedLists: ['Mi wishlist'],
           myCollections: { 'Mi colección': ['2 Llanowar Elves', '3 Counterspell'] },
-          groupCollections: {
+          allCollections: {
             [me]: { name: 'Yo', lists: { Principal: ['2 Llanowar Elves'] } },
             [bob]: { name: 'Bob', lists: { Principal: ['4 Lightning Bolt', '1 Fire // Ice'] } }
           },
-          groupWishlists: {
+          allWishlists: {
             [me]: { name: 'Yo', lists: { Principal: ['1 Counterspell'] } },
             [bob]: { name: 'Bob', lists: { Principal: ['2 Llanowar Elves', '1 Ice // Fire'] } }
           },
@@ -135,7 +135,7 @@
           [{ name: 'Lightning Bolt', want: 4, have: 2 }], 'detecta tenencia parcial');
         eq(computeMatches(Object.assign({}, base, { selectedLists: [] })).hasWanted, false, 'sin wishlist → hasWanted false');
         const dc = computeMatches(Object.assign({}, base, { myWishlists: { 'Mi wishlist': ['1 Ice // Fire'] }, selectedLists: ['Mi wishlist'], myCollections: {} }));
-        eq(dc.iWant, [{ name: 'Bob', hits: [{ name: 'Ice // Fire', qty: 1, available: 1 }], lines: ['1x Ice // Fire'] }], 'doble cara cruzada con el grupo');
+        eq(dc.iWant, [{ name: 'Bob', hits: [{ name: 'Ice // Fire', qty: 1, available: 1 }], lines: ['1x Ice // Fire'] }], 'doble cara cruzada con los demás');
       })();
 
       // ── Render ───────────────────────────────────────────

@@ -88,7 +88,7 @@
   //  - iWant/theyWant: por jugador, lo que buscas y ellos tienen, y viceversa
   //  - hasWanted: si hay algo en tu wishlist que buscar
   function computeMatches(opts) {
-    const { myWishlists, selectedLists, myCollections, groupCollections, groupWishlists, myUid } = opts || {};
+    const { myWishlists, selectedLists, myCollections, allCollections, allWishlists, myUid } = opts || {};
 
     // Lo que YO busco (de las wishlists seleccionadas)
     const searchMap = new Map();
@@ -123,9 +123,9 @@
     const iWant = [];
     const theyWant = [];
 
-    for (const uid in groupCollections) {
+    for (const uid in allCollections) {
       if (uid === myUid) continue;
-      const data = groupCollections[uid];
+      const data = allCollections[uid];
       const remoteLists = data.lists || (data.cards ? { Principal: data.cards } : {});
 
       // Lo que YO quiero y ELLOS tienen
@@ -148,7 +148,7 @@
 
       // Lo que ELLOS quieren y YO tengo
       if (myCards.size > 0) {
-        const theirWlData = groupWishlists[uid];
+        const theirWlData = allWishlists[uid];
         if (theirWlData) {
           const theirLists = theirWlData.lists || (theirWlData.cards ? { Principal: theirWlData.cards } : {});
           const hitsMap = new Map();

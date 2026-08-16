@@ -3,11 +3,11 @@
 // ═══════════════════════════════════════════════════════════
 
 const $ = id => document.getElementById(id);
-let groupCollections = {};
-let groupWishlists = {};
+let allCollections = {};
+let allWishlists = {};
 let unsubCol = null;
 let unsubWl = null;
-let groupDataReady = { col: false, wl: false };
+let cloudDataReady = { col: false, wl: false };
 // ── FIREBASE GUARD ─────────────────────────────────────────
 if (typeof FIREBASE_CONFIG === 'undefined') {
   document.body.innerHTML = `
@@ -232,9 +232,9 @@ auth.onAuthStateChanged(async user => {
     if (user && !user.emailVerified) { await auth.signOut(); return; }
     if (unsubCol) { unsubCol(); unsubCol = null; }
     if (unsubWl) { unsubWl(); unsubWl = null; }
-    groupCollections = {};
-    groupWishlists = {};
-    groupDataReady = { col: false, wl: false };
+    allCollections = {};
+    allWishlists = {};
+    cloudDataReady = { col: false, wl: false };
     currentPlayer = null;
     hideLoader();
     $('authPillText').textContent = 'Sin sesión';
@@ -890,8 +890,8 @@ function runMatches() {
     myWishlists,
     selectedLists: effectiveSelected,
     myCollections,
-    groupCollections,
-    groupWishlists,
+    allCollections,
+    allWishlists,
     myUid: currentPlayer.uid
   });
 
@@ -917,8 +917,8 @@ function runMatches() {
     }
   }
 
-  // 4. Procesar datos del GRUPO (cálculo puro + renderizado)
-  if (!groupDataReady.col || !groupDataReady.wl) {
+  // 4. Procesar datos de todos los jugadores (cálculo puro + renderizado)
+  if (!cloudDataReady.col || !cloudDataReady.wl) {
     if (iWantEl) iWantEl.innerHTML = '<p class="text-muted">Cargando datos de los jugadores…</p>';
     if (theyWantEl) theyWantEl.innerHTML = '';
     return;
@@ -1010,31 +1010,31 @@ async function ensureUsernameClaim(nameLower, uid) {
 function subscribeCloudData() {
   if (unsubCol) { unsubCol(); unsubCol = null; }
   if (unsubWl) { unsubWl(); unsubWl = null; }
-  groupDataReady = { col: false, wl: false };
+  cloudDataReady = { col: false, wl: false };
 
   unsubCol = db.collection('collections').onSnapshot(snap => {
     const data = {};
     snap.forEach(doc => { data[doc.id] = doc.data(); });
-    groupCollections = data;
-    groupDataReady.col = true;
-    if (groupDataReady.col && groupDataReady.wl) runMatches();
+    allCollections = data;
+    cloudDataReady.col = true;
+    if (cloudDataReady.col && cloudDataReady.wl) runMatches();
   }, err => {
     console.error('Snapshot collections:', err);
-    groupDataReady.col = true;
-    if (groupDataReady.col && groupDataReady.wl) runMatches();
+    cloudDataReady.col = true;
+    if (cloudDataReady.col && cloudDataReady.wl) runMatches();
     toast('Error al sincronizar las colecciones.', 'err');
   });
 
   unsubWl = db.collection('wishlists').onSnapshot(snap => {
     const data = {};
     snap.forEach(doc => { data[doc.id] = doc.data(); });
-    groupWishlists = data;
-    groupDataReady.wl = true;
-    if (groupDataReady.col && groupDataReady.wl) runMatches();
+    allWishlists = data;
+    cloudDataReady.wl = true;
+    if (cloudDataReady.col && cloudDataReady.wl) runMatches();
   }, err => {
     console.error('Snapshot wishlists:', err);
-    groupDataReady.wl = true;
-    if (groupDataReady.col && groupDataReady.wl) runMatches();
+    cloudDataReady.wl = true;
+    if (cloudDataReady.col && cloudDataReady.wl) runMatches();
     toast('Error al sincronizar las listas de deseados.', 'err');
   });
 }

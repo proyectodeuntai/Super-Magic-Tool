@@ -1,13 +1,13 @@
-# Magic Toolbox
+# Magic Card Matcher
 
-Herramienta web para grupos de juego de *Magic: The Gathering*.
+Herramienta web para que tú y tus amigos descubráis qué cartas de *Magic: The Gathering* podéis intercambiar.
 
-## Card Matcher
+## Qué hace
 
-Cruza tu wishlist con las colecciones de tu grupo para descubrir:
+Añade las cartas que tienes (tu colección) y las que buscas (tu lista de deseados). La web cruza tus listas con las de los demás para mostrarte:
 
-- qué cartas de tu wishlist ya tienes,
-- qué cartas buscas que otros del grupo tienen,
-- qué cartas tienes que otros del grupo buscan.
+- qué cartas de tu lista de deseados ya tienes tú,
+- qué cartas buscas y tiene algún amigo,
+- qué cartas tienes y busca algún amigo.
 
-Crea un grupo, comparte el código con tus amigos y añade tus listas (a mano o importando desde Moxfield o MTGO).
+Puedes añadir las cartas a mano o importarlas desde Moxfield o MTGO.

@@ -3,6 +3,39 @@
    ========================================================================== */
 
 /* ── VARIABLES ────────────────────────────────────────────── */
+/* ── FONTS (auto-alojadas, subconjunto latin) ────────────── */
+@font-face {
+  font-family: 'Cinzel';
+  font-style: normal;
+  font-weight: 600 800;
+  font-display: swap;
+  src: url('../assets/fonts/cinzel.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url('../assets/fonts/jetbrains-mono.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('../assets/fonts/space-grotesk.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Syne';
+  font-style: normal;
+  font-weight: 700 800;
+  font-display: swap;
+  src: url('../assets/fonts/syne.woff2') format('woff2');
+}
+
 :root {
   --bg: #e6e4df;
   --fg: #111111;

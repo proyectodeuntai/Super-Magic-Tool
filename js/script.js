@@ -19,8 +19,8 @@ let inviteHandled = false;
 if (typeof FIREBASE_CONFIG === 'undefined') {
   document.body.innerHTML = `
     <div class="firebase-error">
-      <h2>Falta config.js</h2>
-      <p>Copia config.example.js a config.js y rellena tus credenciales.</p>
+      <h2>Falta la configuración</h2>
+      <p>No se ha encontrado config.js con las credenciales de Firebase.</p>
     </div>`;
   throw new Error('config.js no encontrado.');
 }

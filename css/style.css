@@ -1896,6 +1896,21 @@ h2 {
   gap: 1rem;
 }
 
+.landing-actions .landing-cta {
+  min-width: 240px;
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  .landing-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .landing-actions .landing-cta {
+    width: 100%;
+  }
+}
+
 .landing-cta {
   display: inline-block;
   font-size: 1.1rem;
@@ -1982,6 +1997,12 @@ h2 {
   margin-top: 1.25rem;
   padding-top: 1.25rem;
   border-top: 2px dashed var(--border);
+  text-align: center;
+}
+
+.auth-demo-btn {
+  display: inline-block;
+  width: auto;
 }
 
 .demo-banner {

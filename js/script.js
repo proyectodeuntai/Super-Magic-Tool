@@ -24,6 +24,7 @@ const auth = firebase.auth();
 
 let currentPlayer = null;
 let isRegistering = false;
+let DEMO_MODE = false;
 
 let myCollections = { "Mi colección": [] };
 let activeColList = "Mi colección";
@@ -230,6 +231,7 @@ auth.onAuthStateChanged(async user => {
 
   } else {
     if (user && !user.emailVerified) { await auth.signOut(); return; }
+    if (DEMO_MODE) return; // demo activo: no salir por eventos de auth
     if (unsubCol) { unsubCol(); unsubCol = null; }
     if (unsubWl) { unsubWl(); unsubWl = null; }
     allCollections = {};
@@ -252,6 +254,75 @@ auth.onAuthStateChanged(async user => {
     setAuthState('login');
   }
 });
+
+// ── MODO DEMO (probar sin cuenta) ──────────────────────────
+const DEMO_DATA = {
+  myName: 'Tú (demo)',
+  myCollections: { 'Mi colección': ['4 Lightning Bolt', '2 Force of Will', '1 Black Lotus', '4 Brainstorm'] },
+  myWishlists: { 'Mi lista de deseados': ['4 Lightning Bolt', '3 Force of Will', '1 Sol Ring'] },
+  players: [
+    { uid: 'demo-maria', name: 'María', col: ['2 Force of Will', '4 Birds of Paradise', '3 Lightning Bolt'], wl: ['4 Lightning Bolt', '2 Sol Ring'] },
+    { uid: 'demo-carlos', name: 'Carlos', col: ['2 Sol Ring', '1 Mana Crypt', '4 Thoughtseize'], wl: ['1 Black Lotus', '2 Force of Will'] },
+    { uid: 'demo-lucia', name: 'Lucía', col: ['4 Brainstorm', '2 Snapcaster Mage', '1 Sol Ring'], wl: ['4 Brainstorm'] }
+  ]
+};
+
+function showDemoBanner() { const b = $('demoBanner'); if (b) b.classList.remove('hidden'); }
+function hideDemoBanner() { const b = $('demoBanner'); if (b) b.classList.add('hidden'); }
+
+function enterDemo() {
+  DEMO_MODE = true;
+  currentPlayer = { uid: 'demo-user', name: DEMO_DATA.myName, isAdmin: false };
+  myCollections = JSON.parse(JSON.stringify(DEMO_DATA.myCollections));
+  myWishlists = JSON.parse(JSON.stringify(DEMO_DATA.myWishlists));
+  activeColList = Object.keys(myCollections)[0] || 'Mi colección';
+  activeWlList = Object.keys(myWishlists)[0] || 'Mi lista de deseados';
+
+  allCollections = {};
+  allWishlists = {};
+  DEMO_DATA.players.forEach(p => {
+    allCollections[p.uid] = { name: p.name, lists: { Principal: p.col } };
+    allWishlists[p.uid] = { name: p.name, lists: { Principal: p.wl } };
+  });
+  cloudDataReady = { col: true, wl: true };
+
+  $('authPillText').textContent = DEMO_DATA.myName;
+  $('userMenuBtn').classList.add('active');
+  $('tabAdminBtn')?.classList.add('hidden');
+  $('loginScreen').classList.add('hidden');
+  $('mainApp').classList.remove('hidden');
+  hideLoader();
+  showDemoBanner();
+
+  updateListUI('col');
+  updateListUI('wl');
+  renderWishlistMatchSelector();
+  switchTab('Home');
+  toast('Modo demo: datos de ejemplo, nada se guarda.', 'inf');
+}
+
+function exitDemo() {
+  DEMO_MODE = false;
+  currentPlayer = null;
+  allCollections = {};
+  allWishlists = {};
+  cloudDataReady = { col: false, wl: false };
+  myCollections = { 'Mi colección': [] };
+  myWishlists = { 'Mi lista de deseados': [] };
+  activeColList = 'Mi colección';
+  activeWlList = 'Mi lista de deseados';
+  accModal?.classList.add('hidden');
+  hideDemoBanner();
+  $('authPillText').textContent = 'Sin sesión';
+  $('userMenuBtn').classList.remove('active');
+  $('tabAdminBtn')?.classList.add('hidden');
+  $('mainApp').classList.add('hidden');
+  $('loginScreen').classList.remove('hidden');
+  setAuthState('login');
+}
+
+$('demoBtn')?.addEventListener('click', enterDemo);
+$('exitDemoBtn')?.addEventListener('click', exitDemo);
 
 // ── AUTH ERRORS ────────────────────────────────────────────
 const AUTH_ERRORS = {
@@ -359,11 +430,13 @@ accModal?.addEventListener('click', e => { if (e.target === accModal) accModal.c
 
 $('modalLogoutBtn')?.addEventListener('click', async () => {
   accModal.classList.add('hidden');
+  if (DEMO_MODE) { exitDemo(); return; }
   await auth.signOut();
   toast('Sesión cerrada.', 'inf');
 });
 
 $('saveNewUsernameBtn')?.addEventListener('click', async () => {
+  if (DEMO_MODE) { toast('No disponible en modo demo.', 'inf'); return; }
   const input = $('newUsernameInput');
   const status = $('usernameChangeStatus');
   const newName = input.value.trim();
@@ -421,6 +494,7 @@ $('saveNewUsernameBtn')?.addEventListener('click', async () => {
 });
 
 $('modalDeleteBtn')?.addEventListener('click', async () => {
+  if (DEMO_MODE) { toast('No disponible en modo demo.', 'inf'); return; }
   const user = auth.currentUser;
   if (!user) return;
 
@@ -478,13 +552,14 @@ async function loadCloudData() {
 
 // ── AUTOSAVE CON DEBOUNCE ──────────────────────────────────
 function scheduleSave(prefix) {
+  if (DEMO_MODE) return; // demo: los cambios quedan solo en memoria
   clearTimeout(saveTimers[prefix]);
   setSyncStatus(prefix, 'saving');
   saveTimers[prefix] = setTimeout(() => saveFullDictToCloud(prefix), 1200);
 }
 
 async function saveFullDictToCloud(prefix) {
-  if (!currentPlayer) return;
+  if (!currentPlayer || DEMO_MODE) return;
   const colName = prefix === 'col' ? 'collections' : 'wishlists';
   const dict = prefix === 'col' ? myCollections : myWishlists;
   try {

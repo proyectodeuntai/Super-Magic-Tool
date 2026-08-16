@@ -1887,3 +1887,136 @@ h2 {
   padding: 0.15rem 0.5rem;
   font-size: 0.8rem;
 }
+
+/* ── LANDING (¿Cómo funciona?) ───────────────────────────── */
+.landing-how {
+  max-width: 720px;
+  margin: 3rem auto 4rem;
+  padding: 0 1.5rem;
+  text-align: center;
+}
+
+.landing-how h2 {
+  border: none;
+  padding: 0;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.landing-steps {
+  list-style: none;
+  margin: 0 0 2rem;
+  padding: 0;
+  text-align: left;
+  display: grid;
+  gap: 1rem;
+  counter-reset: step;
+}
+
+.landing-steps li {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  border: 3px solid var(--border);
+  background: var(--surface);
+  padding: 1rem 1.25rem;
+  box-shadow: 6px 6px 0 var(--border);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.landing-steps li::before {
+  counter-increment: step;
+  content: counter(step);
+  flex: 0 0 auto;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  font-size: 0.9rem;
+}
+
+.landing-cta {
+  display: inline-block;
+  font-size: 1.1rem;
+  padding: 0.9rem 2.5rem;
+}
+
+.landing-note {
+  margin-top: 1.25rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* ── GUÍA DE INICIO (Home) ───────────────────────────────── */
+.home-onboarding {
+  border: 3px solid var(--accent-yellow);
+  background: #fffdf4;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 6px 6px 0 var(--border);
+}
+
+.home-onboarding .onboarding-title {
+  margin-bottom: 1rem;
+}
+
+.home-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.home-steps li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  font-size: 0.9rem;
+}
+
+.home-steps .step-num {
+  flex: 0 0 auto;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  background: var(--accent-yellow);
+  color: #000;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  font-size: 0.85rem;
+}
+
+.home-steps li > span:not(.step-num) {
+  flex: 1 1 auto;
+  min-width: 12rem;
+}
+
+/* ── AYUDA DE EXPORTACIÓN ────────────────────────────────── */
+.export-help {
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.export-help summary {
+  cursor: pointer;
+  padding: 0.5rem 0.75rem;
+  font-weight: 700;
+  color: var(--accent-blue);
+}
+
+.export-help ul {
+  margin: 0;
+  padding: 0.5rem 0.75rem 0.75rem 2rem;
+  line-height: 1.5;
+  color: var(--muted);
+}

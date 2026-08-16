@@ -27,8 +27,8 @@ let isRegistering = false;
 
 let myCollections = { "Mi colección": [] };
 let activeColList = "Mi colección";
-let myWishlists = { "Mi wishlist": [] };
-let activeWlList = "Mi wishlist";
+let myWishlists = { "Mi lista de deseados": [] };
+let activeWlList = "Mi lista de deseados";
 
 // Debounce timers para autoguardado
 let saveTimers = { col: null, wl: null };
@@ -166,6 +166,11 @@ function switchTab(tabName) {
   if (btn) btn.addEventListener('click', () => switchTab(tab));
 });
 
+// Botones de la guía de inicio que saltan de pestaña
+document.querySelectorAll('[data-goto]').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.goto));
+});
+
 // ── SYNC STATUS INDICATOR ──────────────────────────────────
 function setSyncStatus(prefix, state) {
   // state: 'saving' | 'saved' | ''
@@ -215,6 +220,7 @@ auth.onAuthStateChanged(async user => {
 
       await loadCloudData();
       subscribeCloudData();
+      updateHomeOnboarding();
       toast(`Bienvenido, ${username}`);
 
     } catch (e) {
@@ -237,9 +243,9 @@ auth.onAuthStateChanged(async user => {
 
     switchTab('Home');
     myCollections = { "Mi colección": [] };
-    myWishlists = { "Mi wishlist": [] };
+    myWishlists = { "Mi lista de deseados": [] };
     activeColList = "Mi colección";
-    activeWlList = "Mi wishlist";
+    activeWlList = "Mi lista de deseados";
 
     $('mainApp').classList.add('hidden');
     $('loginScreen').classList.remove('hidden');
@@ -320,7 +326,7 @@ $('authForm').addEventListener('submit', async e => {
 
       setAuthState('login');
       showAuthFeedback(
-        `¡Cuenta creada! Hemos enviado un enlace de verificación a <strong>${escapeHtml(email)}</strong>. Haz clic en él y luego inicia sesión.`,
+        `Te hemos enviado un correo de verificación a <strong>${escapeHtml(email)}</strong>. Ábrelo y haz clic en el enlace para poder entrar.`,
         'success'
       );
 
@@ -418,7 +424,7 @@ $('modalDeleteBtn')?.addEventListener('click', async () => {
   const user = auth.currentUser;
   if (!user) return;
 
-  const ok = await bModal.confirm('¿Eliminar tu cuenta? Se borrarán tu perfil, colección y wishlist de forma permanente.');
+  const ok = await bModal.confirm('¿Eliminar tu cuenta? Se borrarán tu perfil, colección y lista de deseados de forma permanente.');
   if (!ok) return;
 
   const pwd = await bModal.prompt('Introduce tu contraseña para confirmar:', '••••••••', true);
@@ -461,11 +467,11 @@ async function loadCloudData() {
     const wlDoc = await db.collection('wishlists').doc(currentPlayer.uid).get();
     if (wlDoc.exists) {
       const d = wlDoc.data();
-      myWishlists = d.lists ? d.lists : { "Mi wishlist": d.cards || [] };
+      myWishlists = d.lists ? d.lists : { "Mi lista de deseados": d.cards || [] };
     }
   } catch (e) { console.warn('Wishlist:', e); }
 
-  if (!myWishlists[activeWlList]) activeWlList = Object.keys(myWishlists)[0] || "Mi wishlist";
+  if (!myWishlists[activeWlList]) activeWlList = Object.keys(myWishlists)[0] || "Mi lista de deseados";
   updateListUI('wl');
   renderWishlistMatchSelector();
 }
@@ -786,45 +792,6 @@ function mergeAndSave(textareaId, newCards) {
   panel.querySelectorAll('.imp-panel').forEach(p => p.classList.toggle('active', p.id === viewId));
 }
 
-// ── URL IMPORT ─────────────────────────────────────────────
-// Proxies CORS en orden de preferencia (fallback automático si uno falla)
-// const CORS_PROXIES = [
-//   url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-//   url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-//   url => `https://corsproxy.io/?${encodeURIComponent(url)}`
-// ];
-
-// async function fetchWithProxy(targetUrl) {
-//   let lastErr;
-//   for (const proxyFn of CORS_PROXIES) {
-//     try {
-//       const resp = await fetch(proxyFn(targetUrl), { signal: AbortSignal.timeout(8000) });
-//       if (!resp.ok) { lastErr = new Error(`HTTP ${resp.status}`); continue; }
-//       const text = await resp.text();
-//       try {
-//         return JSON.parse(text);
-//       } catch (e) {
-//         // Si el proxy falla y devuelve HTML en lugar del JSON, forzamos que pruebe el siguiente
-//         throw new Error('Respuesta inválida (posible bloqueo de proxy)');
-//       }
-//     } catch (e) { lastErr = e; }
-//   }
-//   throw lastErr || new Error('No se pudo conectar con ningún proxy CORS.');
-// }
-
-
-
-// $('colFetchUrlBtn').addEventListener('click', () => {
-//   const url = $('colUrlInput').value.trim();
-//   if (!url) { $('colUrlStatus').textContent = 'Introduce una URL primero.'; $('colUrlStatus').className = 'imp-status err'; return; }
-//   fetchDeckFromUrl(url, 'colUrlStatus', 'collectionInput');
-// });
-// $('wlFetchUrlBtn').addEventListener('click', () => {
-//   const url = $('wlUrlInput').value.trim();
-//   if (!url) { $('wlUrlStatus').textContent = 'Introduce una URL primero.'; $('wlUrlStatus').className = 'imp-status err'; return; }
-//   fetchDeckFromUrl(url, 'wlUrlStatus', 'wishlistInput');
-// });
-
 // ── CSV IMPORT ─────────────────────────────────────────────
 // parseCSV vive en card-utils.js (cargado antes).
 
@@ -873,7 +840,7 @@ function renderWishlistMatchSelector() {
   const keys = Object.keys(myWishlists);
   if (!keys.length) {
     box.style.display = 'block';
-    container.innerHTML = '<p class="text-xs text-muted">Todavía no tienes wishlists. Añade cartas en la pestaña «Mi Wishlist».</p>';
+    container.innerHTML = '<p class="text-xs text-muted">Todavía no tienes listas de deseados. Añade cartas en la pestaña «Mi Lista de Deseados».</p>';
     return;
   }
   // Con una sola wishlist no hay nada que elegir: ocultamos el selector.
@@ -892,9 +859,22 @@ function renderWishlistMatchSelector() {
   });
 }
 
+// ── GUÍA DE INICIO (3 pasos) ───────────────────────────────
+function totalCards(dict) {
+  return Object.values(dict || {}).reduce((n, arr) => n + (Array.isArray(arr) ? arr.length : 0), 0);
+}
+
+function updateHomeOnboarding() {
+  const el = $('homeOnboarding');
+  if (!el) return;
+  const isEmpty = currentPlayer && totalCards(myCollections) === 0 && totalCards(myWishlists) === 0;
+  el.classList.toggle('hidden', !isEmpty);
+}
+
 // ── MATCHER (3 columnas colapsables) ──────────────────────
 function runMatches() {
   if (!currentPlayer) return;
+  updateHomeOnboarding();
 
   const iWantEl = $('matchesIWant');
   const theyWantEl = $('matchesTheyWant');
@@ -918,7 +898,7 @@ function runMatches() {
   // 3. Cartas de mi wishlist que YA tengo
   if (iHaveEl) {
     if (!hasWanted) {
-      iHaveEl.innerHTML = '<p class="text-muted">Añade cartas a tu wishlist primero.</p>';
+      iHaveEl.innerHTML = '<p class="text-muted">Añade cartas a tu lista de deseados primero.</p>';
     } else {
       const sections = [];
       if (owned.length) {
@@ -1055,7 +1035,7 @@ function subscribeCloudData() {
     console.error('Snapshot wishlists:', err);
     groupDataReady.wl = true;
     if (groupDataReady.col && groupDataReady.wl) runMatches();
-    toast('Error al sincronizar las wishlists.', 'err');
+    toast('Error al sincronizar las listas de deseados.', 'err');
   });
 }
 

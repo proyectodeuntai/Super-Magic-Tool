@@ -101,7 +101,7 @@
       <div class="tabs-nav">
         <button class="tab-btn active" id="tabHomeBtn">Coincidencias</button>
         <button class="tab-btn" id="tabCollectionBtn">Mi Colección</button>
-        <button class="tab-btn" id="tabWishlistBtn">Mi Wishlist</button>
+        <button class="tab-btn" id="tabWishlistBtn">Mi Lista de Deseados</button>
         <button class="tab-btn hidden" id="tabAdminBtn">Admin</button>
       </div>
 
@@ -110,10 +110,19 @@
         <h2>Coincidencias</h2>
         <p class="text-muted mb-4">Qué cartas puedes intercambiar con tus amigos.</p>
 
+        <div id="homeOnboarding" class="home-onboarding hidden">
+          <p class="onboarding-title">Empieza en 3 pasos</p>
+          <ol class="home-steps">
+            <li><span class="step-num">1</span><span>Añade las cartas que <strong>tienes</strong>.</span><button class="btn btn-sm btn-primary" data-goto="Collection">Ir a Mi Colección</button></li>
+            <li><span class="step-num">2</span><span>Añade las cartas que <strong>buscas</strong>.</span><button class="btn btn-sm btn-primary" data-goto="Wishlist">Ir a Mi Lista de Deseados</button></li>
+            <li><span class="step-num">3</span><span>Vuelve aquí y pulsa <strong>Buscar coincidencias</strong>.</span></li>
+          </ol>
+        </div>
+
         <div class="match-selector-box mb-4" id="wishlistMatchSelectorBox">
-          <p class="label-small">Wishlists a buscar:</p>
+          <p class="label-small">Listas a buscar:</p>
           <div id="wishlistMatchSelector" class="flex gap-2 flex-wrap">
-            <p class="text-xs text-muted">Cargando wishlists…</p>
+            <p class="text-xs text-muted">Cargando listas…</p>
           </div>
         </div>
 
@@ -121,22 +130,22 @@
 
         <div class="matcher-layout">
           <div class="match-box">
-            <h3 class="match-box-title">Ya las tengo</h3>
-            <p class="match-box-hint">Cartas de tu wishlist que ya tienes en tu colección</p>
+            <h3 class="match-box-title">Ya las tienes tú</h3>
+            <p class="match-box-hint">Cartas que buscas y ya tienes en tu colección</p>
             <div id="matchesIHave" class="match-list">
               <p class="text-muted">Pulsa "Buscar coincidencias" para empezar.</p>
             </div>
           </div>
           <div class="match-box">
-            <h3 class="match-box-title">Otros las tienen</h3>
-            <p class="match-box-hint">Cartas que buscas y otros tienen</p>
+            <h3 class="match-box-title">Quién tiene lo que buscas</h3>
+            <p class="match-box-hint">Cartas que buscas y tienen tus amigos</p>
             <div id="matchesIWant" class="match-list">
               <p class="text-muted">Pulsa "Buscar coincidencias" para empezar.</p>
             </div>
           </div>
           <div class="match-box">
-            <h3 class="match-box-title">Otros las buscan</h3>
-            <p class="match-box-hint">Cartas que tienes y otros buscan</p>
+            <h3 class="match-box-title">Quién busca lo que tienes</h3>
+            <p class="match-box-hint">Cartas que tienes y buscan tus amigos</p>
             <div id="matchesTheyWant" class="match-list">
               <p class="text-muted">Pulsa "Buscar coincidencias" para empezar.</p>
             </div>
@@ -208,6 +217,14 @@
           </div>
           <input type="file" id="colFileInput" accept=".csv,.txt" class="hidden">
           <p class="imp-status" id="colCsvStatus"></p>
+          <details class="export-help">
+            <summary>¿Cómo exporto mi lista?</summary>
+            <ul>
+              <li><strong>Moxfield:</strong> abre tu mazo → <em>Export</em> → descarga el archivo .txt.</li>
+              <li><strong>MTGO:</strong> abre tu colección → <em>Export as CSV</em>.</li>
+              <li><strong>Archidekt:</strong> abre tu mazo → <em>Export</em> → descarga el archivo .txt.</li>
+            </ul>
+          </details>
         </div>
 
       </div>
@@ -216,8 +233,8 @@
       <div class="panel" id="panelWishlist">
         <div class="panel-header">
           <div>
-            <h2>Mi Wishlist</h2>
-            <p class="text-muted">Cartas que quieres conseguir.</p>
+            <h2>Mi Lista de Deseados</h2>
+            <p class="text-muted">Cartas que buscas para tu colección.</p>
           </div>
           <span class="sync-status" id="wlSyncStatus"></span>
         </div>
@@ -239,9 +256,8 @@
 
         <div class="imp-panel active" id="wl-view">
           <div id="wlOnboarding" class="onboarding-empty">
-            <p class="onboarding-title">Tu wishlist está vacía</p>
-            <p class="onboarding-hint">Añade las cartas que buscas para que otros puedan encontrar coincidencias
-              contigo.</p>
+            <p class="onboarding-title">Tu lista de deseados está vacía</p>
+            <p class="onboarding-hint">Añade las cartas que buscas para ver quién las tiene.</p>
           </div>
 
           <div class="quick-add-row">
@@ -272,6 +288,14 @@
           </div>
           <input type="file" id="wlFileInput" accept=".csv,.txt" class="hidden">
           <p class="imp-status" id="wlCsvStatus"></p>
+          <details class="export-help">
+            <summary>¿Cómo exporto mi lista?</summary>
+            <ul>
+              <li><strong>Moxfield:</strong> abre tu mazo → <em>Export</em> → descarga el archivo .txt.</li>
+              <li><strong>MTGO:</strong> abre tu colección → <em>Export as CSV</em>.</li>
+              <li><strong>Archidekt:</strong> abre tu mazo → <em>Export</em> → descarga el archivo .txt.</li>
+            </ul>
+          </details>
         </div>
 
       </div>

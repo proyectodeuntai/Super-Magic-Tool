@@ -1837,57 +1837,6 @@ h2 {
   to { transform: rotate(360deg); }
 }
 
-/* ── GRUPO ───────────────────────────────────────────────── */
-.group-actions {
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-.group-card {
-  border: 2px solid var(--fg);
-  box-shadow: var(--shadow-hard-lg);
-  background: var(--surface);
-  padding: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
-  max-width: 480px;
-}
-.group-card-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-.group-card-head strong {
-  font-size: 1.15rem;
-}
-.group-code {
-  font-size: 0.85rem;
-  margin: 0;
-}
-.group-code code {
-  font-family: 'JetBrains Mono', monospace;
-  font-weight: 700;
-  background: var(--fg);
-  color: var(--surface);
-  padding: 0.15rem 0.4rem;
-}
-.group-members {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-}
-.group-members li {
-  background: var(--bg);
-  border: 1px solid var(--fg);
-  padding: 0.15rem 0.5rem;
-  font-size: 0.8rem;
-}
-
 /* ── LANDING (¿Cómo funciona?) ───────────────────────────── */
 .landing-how {
   max-width: 720px;

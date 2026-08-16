@@ -3,19 +3,13 @@ rules_version = '2';
 // ═══════════════════════════════════════════════════════════
 // Magic Toolbox — Reglas de seguridad de Firestore
 // ═══════════════════════════════════════════════════════════
-// Principios:
-//  - Todo usuario autenticado puede LEER, pero solo su grupo:
-//    un jugador ve sus propios documentos y los de quienes comparten
-//    su `groupId` en players (más los admins).
+// Modelo simple para un grupo cerrado de amigos:
+//  - Cualquier usuario autenticado puede LEER los datos de todos.
 //  - Cada usuario solo puede ESCRIBIR sus propios documentos.
-//  - El flag `isAdmin` NO puede cambiarse desde el cliente: un jugador
-//    no puede auto-promocionarse. Solo otro admin o la consola.
+//  - El flag isAdmin no puede cambiarse desde el cliente (evita
+//    que un jugador se auto-promocione a administrador).
 //  - Los nombres de jugador son únicos de forma atómica vía
-//    `usernames/{nameLower}` (la clave ES el documento).
-//  - Unirse a un grupo solo permite añadirte a ti mismo a `memberUids`.
-//
-// Despliegue:
-//   firebase deploy --only firestore --project TU_PROYECTO_ID
+//    usernames/{nameLower} (la clave ES el documento).
 // ═══════════════════════════════════════════════════════════
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -34,49 +28,15 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/players/$(request.auth.uid)).data.isAdmin == true;
     }
 
-    // ── GRUPOS ───────────────────────────────────────────────
-    // `get()` dentro de las reglas puede leer cualquier documento,
-    // así que podemos comparar groupId sin necesidad de leer players directamente.
-
-    function playerGroup(uid) {
-      return get(/databases/$(database)/documents/players/$(uid)).data.groupId;
-    }
-
-    // ¿`uid` comparte grupo con el usuario actual?
-    function sameGroup(uid) {
-      return isSignedIn()
-        && exists(/databases/$(database)/documents/players/$(request.auth.uid))
-        && exists(/databases/$(database)/documents/players/$(uid))
-        && playerGroup(request.auth.uid) != null
-        && playerGroup(request.auth.uid) == playerGroup(uid);
-    }
-
-    // ¿El usuario actual pertenece al grupo `groupId`?
-    function isGroupMember(groupId) {
-      return isSignedIn()
-        && exists(/databases/$(database)/documents/players/$(request.auth.uid))
-        && playerGroup(request.auth.uid) == groupId;
-    }
-
     match /players/{playerId} {
-      // Solo tú, tu grupo y los admins pueden leer perfiles.
-      allow read: if isSignedIn() && (isSelf(playerId) || sameGroup(playerId) || isAdmin());
-
-      // Crear tu propio perfil, sin poder auto-nombrarte admin.
+      allow read: if isSignedIn();
       allow create: if isSelf(playerId)
         && request.resource.data.get('isAdmin', false) == false;
-
-      // Un admin puede editar cualquier perfil; tú puedes editar el tuyo
-      // pero nunca elevar tu propio flag isAdmin.
       allow update: if isAdmin()
         || (isSelf(playerId) && request.resource.data.get('isAdmin', false) == false);
-
-      // Puedes borrar tu propia cuenta; los admins pueden borrar a cualquiera.
       allow delete: if isAdmin() || isSelf(playerId);
     }
 
-    // Nombres únicos: el documento ES la reclamación (id = nameLower)
-    // y solo su dueño (uid guardado dentro) puede modificarlo/liberarlo.
     match /usernames/{name} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
@@ -86,38 +46,15 @@ service cloud.firestore {
     }
 
     match /collections/{userId} {
-      allow read: if isSignedIn() && (isSelf(userId) || sameGroup(userId) || isAdmin());
+      allow read: if isSignedIn();
       allow create, update: if isSelf(userId);
-      // Los admins pueden borrar los datos de un jugador que eliminan.
       allow delete: if isSelf(userId) || isAdmin();
     }
 
     match /wishlists/{userId} {
-      allow read: if isSignedIn() && (isSelf(userId) || sameGroup(userId) || isAdmin());
+      allow read: if isSignedIn();
       allow create, update: if isSelf(userId);
       allow delete: if isSelf(userId) || isAdmin();
-    }
-
-    match /groups/{groupId} {
-      // Solo miembros del grupo (y admins) pueden leer los datos del grupo.
-      allow read: if isSignedIn() && (isAdmin() || isGroupMember(groupId));
-      allow create: if isSignedIn();
-      // Unirse por código = añadirte a ti mismo a memberUids, y nada más.
-      allow update: if isSignedIn()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberUids'])
-        && request.resource.data.memberUids.hasAny([request.auth.uid]);
-      allow delete: if isAdmin();
-    }
-
-    // Códigos de invitación: legibles por cualquiera autenticado (esa es su
-    // función: compartir el código con quien quieras invitar).
-    match /invites/{code} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.createdBy == request.auth.uid;
-      allow delete: if isAdmin()
-        || (isSignedIn()
-          && exists(/databases/$(database)/documents/invites/$(code))
-          && get(/databases/$(database)/documents/invites/$(code)).data.createdBy == request.auth.uid);
     }
   }
 }

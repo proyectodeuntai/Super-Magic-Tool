@@ -102,22 +102,13 @@
         <button class="tab-btn active" id="tabHomeBtn">Coincidencias</button>
         <button class="tab-btn" id="tabCollectionBtn">Mi Colección</button>
         <button class="tab-btn" id="tabWishlistBtn">Mi Wishlist</button>
-        <button class="tab-btn" id="tabGroupBtn">Grupo</button>
         <button class="tab-btn hidden" id="tabAdminBtn">Admin</button>
       </div>
 
       <!-- HOME: Matcher 3 columnas -->
       <div class="panel active" id="panelHome">
         <h2>Coincidencias</h2>
-        <p class="text-muted mb-4">Qué cartas puedes intercambiar con tu grupo.</p>
-        <div id="noGroupHint" class="onboarding-empty" style="display:none">
-          <p class="onboarding-title">Aún no estás en un grupo</p>
-          <p class="onboarding-hint">Para ver los cruces con tus amigos, crea un grupo o únete al de un amigo.</p>
-          <div class="flex gap-2" style="justify-content:center; margin-top:1rem;">
-            <button class="btn btn-gold" id="hintCreateGroupBtn">+ Crear grupo</button>
-            <button class="btn btn-blue" id="hintJoinGroupBtn">Unirme con código</button>
-          </div>
-        </div>
+        <p class="text-muted mb-4">Qué cartas puedes intercambiar con tus amigos.</p>
 
         <div class="match-selector-box mb-4" id="wishlistMatchSelectorBox">
           <p class="label-small">Wishlists a buscar:</p>
@@ -138,14 +129,14 @@
           </div>
           <div class="match-box">
             <h3 class="match-box-title">Otros las tienen</h3>
-            <p class="match-box-hint">Cartas que buscas y alguien del grupo tiene</p>
+            <p class="match-box-hint">Cartas que buscas y otros tienen</p>
             <div id="matchesIWant" class="match-list">
               <p class="text-muted">Pulsa "Buscar coincidencias" para empezar.</p>
             </div>
           </div>
           <div class="match-box">
             <h3 class="match-box-title">Otros las buscan</h3>
-            <p class="match-box-hint">Cartas que tienes y alguien del grupo quiere</p>
+            <p class="match-box-hint">Cartas que tienes y otros buscan</p>
             <div id="matchesTheyWant" class="match-list">
               <p class="text-muted">Pulsa "Buscar coincidencias" para empezar.</p>
             </div>
@@ -266,7 +257,7 @@
         <div class="imp-panel active" id="wl-view">
           <div id="wlOnboarding" class="onboarding-empty">
             <p class="onboarding-title">Tu wishlist está vacía</p>
-            <p class="onboarding-hint">Añade las cartas que buscas para que el grupo pueda encontrar coincidencias
+            <p class="onboarding-hint">Añade las cartas que buscas para que otros puedan encontrar coincidencias
               contigo.</p>
           </div>
 
@@ -316,18 +307,9 @@
         </div> -->
       </div>
 
-      <!-- GRUPO -->
-      <div class="panel" id="panelGroup">
-        <h2>Mi Grupo</h2>
-        <p class="text-muted mb-4">Crea un grupo con tu gente y comparte el código. Solo los miembros del mismo grupo ven los cruces de los demás.</p>
-        <div id="groupInfo">
-          <p class="text-muted">Cargando…</p>
-        </div>
-      </div>
-
       <!-- ADMIN -->
       <div class="panel" id="panelAdmin">
-        <h2>Admin del Grupo</h2>
+        <h2>Administración</h2>
         <p class="text-muted mb-4">Gestión de jugadores y permisos.</p>
         <p class="imp-hint">Eliminar un jugador borra sus datos de Firestore. Para revocar el acceso completamente,
           elimina también su cuenta desde Firebase Console → Authentication.</p>

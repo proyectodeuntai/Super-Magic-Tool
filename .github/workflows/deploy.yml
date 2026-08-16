@@ -31,14 +31,20 @@ jobs:
           cp js/script.js js/card-utils.js dist/js/
           cp assets/magic_icon_toolbox.svg dist/assets/
           touch dist/.nojekyll
-          # Cache-busting: añade a css/js su hash corto como ?v=, para que cada
-          # cambio se vea sin recarga forzada (y lo que no cambia se reutilice).
+          # Cache-busting: añade a css/js/icono/fuente su hash corto como ?v=,
+          # para que cada cambio se vea sin recarga forzada (y lo que no cambia
+          # se reutilice).
           CSS_HASH=$(sha256sum dist/css/style.css | cut -c1-8)
           JS_HASH=$(sha256sum dist/js/script.js | cut -c1-8)
           CU_HASH=$(sha256sum dist/js/card-utils.js | cut -c1-8)
+          ICON_HASH=$(sha256sum dist/assets/magic_icon_toolbox.svg | cut -c1-8)
+          FONT_URL=$(grep -oE 'https://fonts\.googleapis\.com/css2[^" ]*' dist/index.html | head -1)
+          FONT_HASH=$(printf '%s' "$FONT_URL" | sha256sum | cut -c1-8)
           sed -i "s|css/style.css|css/style.css?v=$CSS_HASH|g" dist/index.html dist/structure.html
           sed -i "s|js/script.js|js/script.js?v=$JS_HASH|g" dist/index.html dist/structure.html
           sed -i "s|js/card-utils.js|js/card-utils.js?v=$CU_HASH|g" dist/structure.html
+          sed -i "s|assets/magic_icon_toolbox.svg|assets/magic_icon_toolbox.svg?v=$ICON_HASH|g" dist/index.html dist/structure.html
+          sed -i "s|display=swap|display=swap\&v=$FONT_HASH|g" dist/index.html dist/structure.html
           node <<'EOF' > dist/config.js
           const cfg = {
             apiKey: (process.env.FIREBASE_API_KEY || '').trim(),

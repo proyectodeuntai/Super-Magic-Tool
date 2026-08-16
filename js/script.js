@@ -1191,3 +1191,6 @@ async function loadAdminPanel() {
     list.innerHTML = '<p class="match-error">Error al cargar jugadores.</p>';
   }
 }
+
+// Auto-entrar en la demo si la URL lleva ?demo (enlace de la portada)
+if (new URLSearchParams(location.search).has('demo')) enterDemo();

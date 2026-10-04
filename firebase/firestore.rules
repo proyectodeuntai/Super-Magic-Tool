@@ -1,15 +1,21 @@
 rules_version = '2';
 
 // ═══════════════════════════════════════════════════════════
-// Magic Toolbox — Reglas de seguridad de Firestore
+// Magic Card Matcher — Reglas de seguridad de Firestore
 // ═══════════════════════════════════════════════════════════
-// Modelo simple para un grupo cerrado de amigos:
-//  - Cualquier usuario autenticado puede LEER los datos de todos.
-//  - Cada usuario solo puede ESCRIBIR sus propios documentos.
-//  - El flag isAdmin no puede cambiarse desde el cliente (evita
-//    que un jugador se auto-promocione a administrador).
-//  - Los nombres de jugador son únicos de forma atómica vía
-//    usernames/{nameLower} (la clave ES el documento).
+// Reparto de la información:
+//  - players/{uid}        directorio público: SOLO el nombre. Se puede
+//                         listar para buscar gente y añadir amigos.
+//  - admins/{uid}         el rol de administrador. No viaja en el
+//                         directorio, así que nadie ve quién manda.
+//  - players/{uid}/friends/{amigo}
+//                         lista de amigos. Es privada: solo la ve su dueño.
+//  - collections/{uid}    y wishlists/{uid} solo se leen si eres el dueño
+//                         o estás en su lista de amigos. El permiso va de
+//                         dueño a amigo: si yo te añado, tú ves mis listas.
+//  - Cada jugador solo ESCRIBE sus propios documentos.
+//  - Los nombres siguen siendo únicos de forma atómica vía
+//    usernames/{nameLower}.
 // ═══════════════════════════════════════════════════════════
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -18,41 +24,78 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function myUid() {
+      return request.auth.uid;
+    }
+
     function isSelf(uid) {
-      return isSignedIn() && request.auth.uid == uid;
+      return isSignedIn() && myUid() == uid;
     }
 
     function isAdmin() {
       return isSignedIn()
-        && exists(/databases/$(database)/documents/players/$(request.auth.uid))
-        && get(/databases/$(database)/documents/players/$(request.auth.uid)).data.isAdmin == true;
+        && exists(/databases/$(database)/documents/admins/$(myUid()));
     }
 
+    // Bandera del modelo antiguo (players.isAdmin). Solo se usa para que una
+    // cuenta que ya era admin pueda crear su rol una vez durante la migración;
+    // en cuanto se limpia la ficha deja de ser cierta y la puerta se cierra.
+    function hadLegacyAdminFlag(uid) {
+      return exists(/databases/$(database)/documents/players/$(uid))
+        && get(/databases/$(database)/documents/players/$(uid)).data.get('isAdmin', false) == true;
+    }
+
+    // Amistad: el dueño guarda una entrada por amigo en su propia subcolección.
+    function isFriendOf(ownerUid) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/players/$(ownerUid)/friends/$(myUid()));
+    }
+
+    // El documento público no puede volver a llevar isAdmin ni friends.
+    function isPublicPlayerRecord() {
+      return !request.resource.data.keys().hasAny(['isAdmin', 'friends']);
+    }
+
+    // ── Directorio público de jugadores ────────────────────
     match /players/{playerId} {
       allow read: if isSignedIn();
-      allow create: if isSelf(playerId)
-        && request.resource.data.get('isAdmin', false) == false;
-      allow update: if isAdmin()
-        || (isSelf(playerId) && request.resource.data.get('isAdmin', false) == false);
+      allow create: if isSelf(playerId) && isPublicPlayerRecord();
+      allow update: if isAdmin() || (isSelf(playerId) && isPublicPlayerRecord());
       allow delete: if isAdmin() || isSelf(playerId);
+
+      // Lista de amigos: privada, solo para su dueño (y para un admin).
+      match /friends/{friendUid} {
+        allow read, write: if isSelf(playerId) || isAdmin();
+      }
     }
 
+    // ── Roles ──────────────────────────────────────────────
+    match /admins/{uid} {
+      allow get: if isAdmin() || isSelf(uid);
+      allow list: if isAdmin();
+      allow create, update, delete: if isAdmin();
+      // Migración de una sola vez (ver hadLegacyAdminFlag).
+      allow create: if isSelf(uid) && hadLegacyAdminFlag(uid);
+    }
+
+    // ── Nombres únicos ─────────────────────────────────────
     match /usernames/{name} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.uid == myUid();
       allow update, delete: if isSignedIn()
         && exists(/databases/$(database)/documents/usernames/$(name))
-        && get(/databases/$(database)/documents/usernames/$(name)).data.uid == request.auth.uid;
+        && get(/databases/$(database)/documents/usernames/$(name)).data.uid == myUid();
     }
 
+    // ── Colección y lista de deseados ──────────────────────
     match /collections/{userId} {
-      allow read: if isSignedIn();
+      allow read: if isSelf(userId) || isFriendOf(userId);
       allow create, update: if isSelf(userId);
       allow delete: if isSelf(userId) || isAdmin();
     }
 
     match /wishlists/{userId} {
-      allow read: if isSignedIn();
+      allow read: if isSelf(userId) || isFriendOf(userId);
       allow create, update: if isSelf(userId);
       allow delete: if isSelf(userId) || isAdmin();
     }

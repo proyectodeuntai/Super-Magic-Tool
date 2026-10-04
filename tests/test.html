@@ -8,8 +8,8 @@
   <style>
     body {
       font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
-      background: #e6e4df;
-      color: #111111;
+      background: #f4f1ea;
+      color: #141414;
       margin: 2rem;
       max-width: 760px;
     }
@@ -26,9 +26,9 @@
       font-size: 0.85rem;
       margin: 0.3rem 0;
     }
-    .pass { color: #00875a; }
-    .fail { color: #e03a3e; }
-    .hint { color: #555555; font-size: 0.8rem; }
+    .pass { color: #0a6242; }
+    .fail { color: #a01019; }
+    .hint { color: #5c584f; font-size: 0.8rem; }
   </style>
 </head>
 
@@ -43,8 +43,8 @@
     (function () {
       if (typeof parseCardString !== 'function' || typeof mergeCardLists !== 'function') {
         const s = document.getElementById('summary');
-        s.textContent = '⚠ No se pudo cargar card-utils.js. Abre este archivo directamente (doble clic) o con `npx serve .`';
-        s.style.color = '#e03a3e';
+        s.textContent = '⚠ No se pudo cargar card-utils.js. Abre este archivo directamente (doble clic) o sírvelo con `py -3 -m http.server`';
+        s.style.color = '#a01019';
         return;
       }
 
@@ -91,6 +91,36 @@
       truthy(normalizeCardName('Counterspell (M21)') === normalizeCardName('Counterspell'), 'ignora el set entre paréntesis');
       truthy(normalizeCardName('Fire // Ice') === normalizeCardName('Ice // Fire'), 'empareja dobles caras en cualquier orden');
       truthy(normalizeCardName('Fire // Ice') !== normalizeCardName('Fire'), 'no confunde nombres distintos');
+
+      // ── splitCardQuery / completeCardQuery (autocompletado Scryfall) ──
+      suite('splitCardQuery');
+      eq(splitCardQuery('4 Lightning Bolt'), { qty: 4, query: 'Lightning Bolt' }, 'separa cantidad y consulta');
+      eq(splitCardQuery('2 lig'), { qty: 2, query: 'lig' }, 'consulta solo el texto, no el número');
+      eq(splitCardQuery('Lightning'), { qty: 1, query: 'Lightning' }, 'sin cantidad asume 1');
+      eq(splitCardQuery("SB: 3 Tormod's"), { qty: 3, query: "Tormod's" }, 'respeta el prefijo SB:');
+
+      suite('completeCardQuery');
+      eq(completeCardQuery('2 lig', 'Lightning Bolt'), '2 Lightning Bolt', 'conserva la cantidad escrita');
+      eq(completeCardQuery('Lightning', 'Lightning Bolt'), 'Lightning Bolt', 'sin cantidad devuelve solo el nombre');
+      eq(completeCardQuery('4x counters', 'Counterspell'), '4 Counterspell', 'normaliza el formato Nx');
+      eq(completeCardQuery('4 counters', ''), '', 'nombre vacío no rompe nada');
+
+      suite('scryfallAutocompleteUrl');
+      truthy(scryfallAutocompleteUrl('Lightning Bolt').includes('q=Lightning%20Bolt'), 'codifica los espacios');
+      truthy(scryfallAutocompleteUrl('a&b').includes('a%26b'), 'codifica caracteres especiales');
+
+      // ── planPlayerMigration (paso al directorio mínimo) ───
+      suite('planPlayerMigration');
+      eq(planPlayerMigration({ name: 'Ana', isAdmin: false, friends: ['a', 'b'] }, 'me'),
+        { createAdminRole: false, friendUids: ['a', 'b'], cleanPlayerDoc: true }, 'pasa los amigos a la subcolección y limpia la ficha');
+      eq(planPlayerMigration({ name: 'Ana', isAdmin: true, friends: [] }, 'me'),
+        { createAdminRole: true, friendUids: [], cleanPlayerDoc: true }, 'un admin antiguo crea su rol antes de limpiar');
+      eq(planPlayerMigration({ name: 'Ana' }, 'me'),
+        { createAdminRole: false, friendUids: [], cleanPlayerDoc: false }, 'una ficha ya limpia no se toca');
+      eq(planPlayerMigration({ friends: ['a', '', null, 'a', 'me', 7] }, 'me'),
+        { createAdminRole: false, friendUids: ['a'], cleanPlayerDoc: true }, 'descarta vacíos, duplicados, uno mismo y lo que no es texto');
+      eq(planPlayerMigration(null, 'me'),
+        { createAdminRole: false, friendUids: [], cleanPlayerDoc: false }, 'sin datos no hay nada que migrar');
 
       // ── parseCSV ─────────────────────────────────────────
       suite('parseCSV');
@@ -143,7 +173,7 @@
       summary.textContent = failed === 0
         ? '✅ ' + passed + ' tests pasados, 0 fallos'
         : '❌ ' + passed + ' pasados, ' + failed + ' fallos';
-      summary.style.color = failed === 0 ? '#00875a' : '#e03a3e';
+      summary.style.color = failed === 0 ? '#0a6242' : '#a01019';
 
       const out = document.getElementById('results');
       let lastSuite = '';

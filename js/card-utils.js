@@ -19,6 +19,37 @@
     return { qty: 1, name: s };
   }
 
+  // Parte una línea de "añadir carta" en cantidad + texto a buscar. Sirve para
+  // el autocompletado: si el usuario escribe "2 lightning", lo que hay que
+  // consultar al catálogo es "lightning", no toda la línea.
+  function splitCardQuery(cardStr) {
+    const s = String(cardStr || '').trim();
+    const sb = s.match(/^sb:\s*(\d+)\s+(.*)$/i);
+    if (sb) return { qty: parseInt(sb[1], 10), query: sb[2].trim() };
+    const m = s.match(/^(\d+)x?\s+(.*)$/i);
+    if (m) return { qty: parseInt(m[1], 10), query: m[2].trim() };
+    return { qty: 1, query: s };
+  }
+
+  // Reconstruye la línea al elegir una sugerencia, conservando la cantidad que
+  // el usuario ya había escrito ("2 lig" + "Lightning Bolt" -> "2 Lightning Bolt")
+  // y dejando solo el nombre canonical: así se evitan las erratas.
+  function completeCardQuery(cardStr, nombre) {
+    const limpio = String(nombre == null ? '' : nombre).trim();
+    if (!limpio) return '';
+    const candidato = String(cardStr || '').match(/^\s*(?:sb:\s*)?\d+\s*x?\s+/i);
+    const { qty } = splitCardQuery(cardStr);
+    const n = Number.isFinite(qty) && qty > 0 ? qty : 1;
+    return candidato ? n + ' ' + limpio : limpio;
+  }
+
+  // URL del autocompletado de Scryfall. Es un endpoint dedicado y ligero (no
+  // como /cards/search), pensado justo para esto.
+  function scryfallAutocompleteUrl(query) {
+    return 'https://api.scryfall.com/cards/autocomplete?q=' +
+      encodeURIComponent(String(query || '').trim());
+  }
+
   // Clave normalizada para comparar nombres: sin mayúsculas, espacios,
   // paréntesis (ej: "(M21)") y con las caras de las cartas dobles ordenadas
   // ("Fire // Ice" y "Ice // Fire" son la misma carta).
@@ -169,7 +200,25 @@
     return { owned, partial, iWant, theyWant, hasWanted: searchMap.size > 0 };
   }
 
-  const api = { parseCardString, normalizeCardName, parseCSV, mergeCardLists, computeMatches };
+  // Plan de migración de una ficha antigua de jugador al esquema actual: el
+  // rol sale a admins/{uid} y el array de amigos a la subcolección privada.
+  // Puro: recibe el documento y dice qué crear y si hay que limpiarlo.
+  function planPlayerMigration(data, uid) {
+    const source = (data && typeof data === 'object') ? data : {};
+    const friendUids = [];
+    (Array.isArray(source.friends) ? source.friends : []).forEach(f => {
+      if (typeof f !== 'string' || !f || f === uid || friendUids.indexOf(f) > -1) return;
+      friendUids.push(f);
+    });
+    return {
+      createAdminRole: source.isAdmin === true,
+      friendUids,
+      cleanPlayerDoc: ('isAdmin' in source) || ('friends' in source)
+    };
+  }
+
+  const api = { parseCardString, normalizeCardName, parseCSV, mergeCardLists, computeMatches,
+                splitCardQuery, completeCardQuery, scryfallAutocompleteUrl, planPlayerMigration };
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = api;
   } else {

@@ -26,7 +26,7 @@ jobs:
           FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
         run: |
           mkdir -p dist/css dist/js dist/assets/fonts
-          cp index.html structure.html dist/
+          cp index.html app.html dist/
           cp css/style.css dist/css/
           cp js/script.js js/card-utils.js dist/js/
           cp assets/magic_icon_toolbox.svg dist/assets/
@@ -39,10 +39,10 @@ jobs:
           JS_HASH=$(sha256sum dist/js/script.js | cut -c1-8)
           CU_HASH=$(sha256sum dist/js/card-utils.js | cut -c1-8)
           ICON_HASH=$(sha256sum dist/assets/magic_icon_toolbox.svg | cut -c1-8)
-          sed -i "s|css/style.css|css/style.css?v=$CSS_HASH|g" dist/index.html dist/structure.html
-          sed -i "s|js/script.js|js/script.js?v=$JS_HASH|g" dist/index.html dist/structure.html
-          sed -i "s|js/card-utils.js|js/card-utils.js?v=$CU_HASH|g" dist/structure.html
-          sed -i "s|assets/magic_icon_toolbox.svg|assets/magic_icon_toolbox.svg?v=$ICON_HASH|g" dist/index.html dist/structure.html
+          sed -i "s|css/style.css|css/style.css?v=$CSS_HASH|g" dist/index.html dist/app.html
+          sed -i "s|js/script.js|js/script.js?v=$JS_HASH|g" dist/index.html dist/app.html
+          sed -i "s|js/card-utils.js|js/card-utils.js?v=$CU_HASH|g" dist/app.html
+          sed -i "s|assets/magic_icon_toolbox.svg|assets/magic_icon_toolbox.svg?v=$ICON_HASH|g" dist/index.html dist/app.html
           # Fuentes auto-alojadas: versiona cada woff2 dentro de style.css.
           for f in dist/assets/fonts/*.woff2; do
             h=$(sha256sum "$f" | cut -c1-8)
